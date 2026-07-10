@@ -1,0 +1,111 @@
+.profile-page {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-10);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+}
+
+.profile-header h1 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.profile-header p {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.profile-email {
+  font-size: 13px !important;
+  margin-top: 2px !important;
+}
+
+.profile-address {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.profile-address svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.profile-address strong {
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.profile-address p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.profile-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  font-size: 15px;
+  font-weight: 500;
+  transition: border-color var(--transition);
+}
+
+.profile-menu-item span:first-child {
+  font-size: 18px;
+}
+
+.profile-menu-item span:nth-child(2) {
+  flex: 1;
+}
+
+.profile-menu-item svg {
+  color: var(--color-text-secondary);
+}
+
+.profile-menu-item:hover {
+  border-color: var(--color-primary);
+}
+
+.logout-btn {
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
