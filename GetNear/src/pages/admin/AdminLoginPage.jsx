@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
 
         <label className="form-label" htmlFor="admin-phone">Mobile number</label>
         <div className="phone-input-row">
-          <span className="country-code">+91</span>
+          {/* <span className="country-code">+91</span> */}
           <input
             id="admin-phone"
             type="tel"
@@ -70,10 +70,10 @@ export default function AdminLoginPage() {
           {busy ? 'Signing in…' : 'Log in'}
         </button>
 
-        <p className="auth-hint">
+        {/* <p className="auth-hint">
           Phone <strong>8668879497</strong> or <strong>9552489313</strong>,
           password <strong>GetNear@123</strong>
-        </p>
+        </p> */}
 
         <p className="auth-footer">
           <Link to="/">← Back to customer app</Link>
