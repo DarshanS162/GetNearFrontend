@@ -107,6 +107,7 @@ export function CatalogProvider({ children }) {
           name: p.name,
           price: p.price,
           emoji: '🍽️',
+          imageUrl: p.imageUrl || '',
         })),
     [products],
   );
@@ -188,6 +189,8 @@ export function CatalogProvider({ children }) {
         free_delivery_above: Number(data.freeDeliveryAbove) || 299,
         banner_color: data.bannerColor || '#FFF0E8',
         icon_emoji: data.icon || '🍽️',
+        banner_url: data.bannerUrl || null,
+        logo_url: data.logoUrl || null,
         offer_badge: data.offer || null,
         category_slug: data.category || 'food',
         owner_id: ownerId,
@@ -273,6 +276,7 @@ export function CatalogProvider({ children }) {
         preparation_time_minutes: Number(data.prepTime) || 15,
         is_available: data.isAvailable !== false,
         ingredients: data.ingredients || null,
+        primary_image_url: data.imageUrl || null,
       });
 
       if (!error) {

@@ -28,10 +28,10 @@ template = "Your GetNear code is {{ .Code }}"
 #   https://<PROJECT_REF>.supabase.co/functions/v1/send-sms
 # ---------------------------------------------------------------------------
 [auth.hook.send_sms]
-enabled = true
+enabled = false
 uri = "http://host.docker.internal:54321/functions/v1/send-sms"
-# secrets: set SEND_SMS_HOOK_SECRET via Dashboard / `supabase secrets set`
-# For hosted projects, configure the hook URI in Authentication → Hooks.
+# For hosted: configure Send SMS Hook in Dashboard → Authentication → Hooks.
+# secrets = "env(SEND_SMS_HOOK_SECRET)"
 
 [functions.send-sms]
 verify_jwt = false

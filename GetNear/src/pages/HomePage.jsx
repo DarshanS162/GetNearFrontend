@@ -75,7 +75,11 @@ export default function HomePage() {
                     className="business-banner"
                     style={{ background: biz.bannerColor }}
                   >
-                    <span className="business-emoji">{biz.icon}</span>
+                    {biz.bannerUrl ? (
+                      <img src={biz.bannerUrl} alt="" className="business-banner-img" />
+                    ) : (
+                      <span className="business-emoji">{biz.icon}</span>
+                    )}
                   </div>
                   <div className="business-info">
                     <h3>{biz.name}</h3>
@@ -100,7 +104,13 @@ export default function HomePage() {
                 to={`/product/${dish.id}`}
                 className="trending-card card card-interactive"
               >
-                <span className="trending-emoji">{dish.emoji}</span>
+                <span className="trending-emoji">
+                  {dish.imageUrl ? (
+                    <img src={dish.imageUrl} alt="" className="trending-img" />
+                  ) : (
+                    dish.emoji
+                  )}
+                </span>
                 <span className="trending-name">{dish.name}</span>
                 <span className="trending-price">₹{dish.price}</span>
               </Link>

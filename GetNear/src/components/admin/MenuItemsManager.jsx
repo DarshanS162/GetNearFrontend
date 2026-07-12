@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
+import ImageField from '../ui/ImageField';
+import { uploadImage } from '../../lib/storage';
 
 const emptyForm = {
   businessId: '',
@@ -49,6 +51,7 @@ export default function MenuItemsManager({
   const [toast, setToast] = useState('');
   const [useNewCategory, setUseNewCategory] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
 
   const selectedBusinessId = lockedBusinessId || form.businessId;
   const categoriesForRestaurant = menuCategories.filter(
@@ -86,11 +89,16 @@ export default function MenuItemsManager({
 
     setSaving(true);
     try {
+      let imageUrl = '';
+      if (imageFile) {
+        imageUrl = await uploadImage('product-images', imageFile, businessId);
+      }
       await addProduct({
         ...form,
         businessId,
         categoryId: useNewCategory ? undefined : form.categoryId,
         newCategoryName: useNewCategory ? form.newCategoryName : undefined,
+        imageUrl,
       });
 
       setForm({
@@ -98,6 +106,7 @@ export default function MenuItemsManager({
         businessId,
         categoryId: '',
       });
+      setImageFile(null);
       setUseNewCategory(false);
       showToast(`"${form.name}" added to menu`);
     } catch (err) {
@@ -164,7 +173,12 @@ export default function MenuItemsManager({
                   filteredProducts.map((item) => (
                     <tr key={item.id}>
                       <td>
-                        <span className="admin-table-name">{item.name}</span>
+                        <span className="admin-table-name">
+                          {item.imageUrl && (
+                            <img src={item.imageUrl} alt="" className="admin-thumb" />
+                          )}
+                          {item.name}
+                        </span>
                         <span className="admin-table-meta">
                           {getCategoryName(item.categoryId)} · {item.foodType}
                           {!item.isAvailable && ' · unavailable'}
@@ -379,6 +393,13 @@ export default function MenuItemsManager({
               style={{ resize: 'vertical' }}
             />
           </div>
+
+          <ImageField
+            id="menu-item-image"
+            label="Item image"
+            value={imageFile}
+            onChange={setImageFile}
+          />
 
           <div className="form-group">
             <label className="checkbox-row">

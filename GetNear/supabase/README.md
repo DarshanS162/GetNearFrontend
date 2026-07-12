@@ -14,7 +14,7 @@ See [DATABASE.md](./DATABASE.md) for full schema documentation.
 In **Supabase Dashboard → SQL Editor**, run in order:
 
 1. `RESET_DATABASE.sql` — wipes `public` schema + clears seeded admin auth users  
-2. `APPLY_ALL_MIGRATIONS.sql` — creates everything 000→026 (admins + table grants)
+2. `APPLY_ALL_MIGRATIONS.sql` — creates everything 000→028 (admins + table grants + storage)
 
 ### CLI (optional)
 
@@ -42,15 +42,16 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 VITE_RAZORPAY_KEY_ID=your_razorpay_key
 ```
 
-## 4. Storage Buckets (manual setup)
+## 4. Storage Buckets
 
-Create these buckets in Supabase Storage:
+Buckets are created by migration `028` (included in `APPLY_ALL_MIGRATIONS.sql`):
 
 | Bucket | Public | Purpose |
 |--------|--------|---------|
-| `restaurant-assets` | Yes | Logos, banners |
+| `restaurant-assets` | Yes | Restaurant banner images |
 | `product-images` | Yes | Menu item photos |
-| `user-profiles` | Yes | Profile avatars |
+
+Authenticated admins/owners can upload; images are public for the customer app.
 
 ## 5. Admin users (migration 024)
 

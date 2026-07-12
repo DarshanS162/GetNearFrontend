@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { cookieAuthStorage } from './cookieAuthStorage';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -16,7 +17,15 @@ if (!hasConfig) {
 }
 
 export const supabase = hasConfig
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: cookieAuthStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+      },
+    })
   : new Proxy(
       {},
       {

@@ -9,7 +9,8 @@
 --   Darshan Salunkhe — 9552489313
 -- ============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Supabase hosts pgcrypto under the extensions schema
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 DO $$
 DECLARE
@@ -56,7 +57,7 @@ BEGIN
         confirmation_token, recovery_token, email_change_token_new, email_change
     ) VALUES (
         v_farine_id, v_instance_id, 'authenticated', 'authenticated',
-        v_farine_email, crypt(v_password, gen_salt('bf')),
+        v_farine_email, extensions.crypt(v_password, extensions.gen_salt('bf')),
         NOW(), v_farine_phone, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         '{"full_name":"Farine Khan"}'::jsonb,
@@ -103,7 +104,7 @@ BEGIN
         confirmation_token, recovery_token, email_change_token_new, email_change
     ) VALUES (
         v_darshan_id, v_instance_id, 'authenticated', 'authenticated',
-        v_darshan_email, crypt(v_password, gen_salt('bf')),
+        v_darshan_email, extensions.crypt(v_password, extensions.gen_salt('bf')),
         NOW(), v_darshan_phone, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         '{"full_name":"Darshan Salunkhe"}'::jsonb,

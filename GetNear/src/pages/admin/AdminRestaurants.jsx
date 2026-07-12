@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
+import ImageField from '../../components/ui/ImageField';
+import { uploadImage } from '../../lib/storage';
 
 const emptyForm = {
   name: '',
@@ -24,6 +26,7 @@ const emptyForm = {
 export default function AdminRestaurants() {
   const { businesses, addRestaurant, deleteRestaurant, slugify } = useCatalog();
   const [form, setForm] = useState(emptyForm);
+  const [imageFile, setImageFile] = useState(null);
   const [toast, setToast] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -43,8 +46,13 @@ export default function AdminRestaurants() {
 
     setSaving(true);
     try {
-      await addRestaurant(form);
+      let bannerUrl = '';
+      if (imageFile) {
+        bannerUrl = await uploadImage('restaurant-assets', imageFile, 'banners');
+      }
+      await addRestaurant({ ...form, bannerUrl });
       setForm(emptyForm);
+      setImageFile(null);
       showToast(`Restaurant "${form.name}" added successfully`);
     } catch (err) {
       showToast(err.message || 'Failed to save restaurant');
@@ -82,7 +90,12 @@ export default function AdminRestaurants() {
                   <tr key={biz.id}>
                     <td>
                       <span className="admin-table-name">
-                        {biz.icon} {biz.name}
+                        {biz.bannerUrl ? (
+                          <img src={biz.bannerUrl} alt="" className="admin-thumb" />
+                        ) : (
+                          <span>{biz.icon} </span>
+                        )}
+                        {biz.name}
                       </span>
                       <span className="admin-table-meta">{biz.type}</span>
                     </td>
@@ -342,6 +355,13 @@ export default function AdminRestaurants() {
               />
             </div>
           </div>
+
+          <ImageField
+            id="restaurant-image"
+            label="Restaurant image"
+            value={imageFile}
+            onChange={setImageFile}
+          />
 
           <div className="form-group">
             <label className="form-label" htmlFor="offer">Offer badge (optional)</label>

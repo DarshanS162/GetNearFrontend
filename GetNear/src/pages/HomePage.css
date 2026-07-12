@@ -91,6 +91,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.business-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .business-emoji {
@@ -148,6 +156,19 @@
 
 .trending-emoji {
   font-size: 32px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.trending-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .trending-name {

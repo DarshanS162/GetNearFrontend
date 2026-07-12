@@ -47,7 +47,11 @@ export default function BusinessPage() {
           className="business-hero-banner"
           style={{ background: business.bannerColor }}
         >
-          <span className="business-hero-icon">{business.icon}</span>
+          {business.bannerUrl ? (
+            <img src={business.bannerUrl} alt="" className="business-hero-img" />
+          ) : (
+            <span className="business-hero-icon">{business.icon}</span>
+          )}
         </div>
 
         <div className="business-detail card">
@@ -105,6 +109,13 @@ export default function BusinessPage() {
             const qty = getQuantity(item.id);
             return (
               <div key={item.id} className="menu-item card">
+                <div className="menu-item-media">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" />
+                  ) : (
+                    <span className="menu-item-media-fallback">🍽️</span>
+                  )}
+                </div>
                 <div className="menu-item-info">
                   <Link to={`/product/${item.id}`}>
                     <h3>{item.name}</h3>

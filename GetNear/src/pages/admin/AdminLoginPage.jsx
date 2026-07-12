@@ -70,10 +70,6 @@ export default function AdminLoginPage() {
           {busy ? 'Signing in…' : 'Log in'}
         </button>
 
-        {/* <p className="auth-hint">
-          Phone <strong>8668879497</strong> or <strong>9552489313</strong>,
-          password <strong>GetNear@123</strong>
-        </p> */}
 
         <p className="auth-footer">
           <Link to="/">← Back to customer app</Link>

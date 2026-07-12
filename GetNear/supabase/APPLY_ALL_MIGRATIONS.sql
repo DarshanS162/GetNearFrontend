@@ -1448,7 +1448,7 @@ CREATE INDEX IF NOT EXISTS idx_favorites_product_id ON public.favorites (product
 --   Darshan Salunkhe — 9552489313
 -- ============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 DO $$
 DECLARE
@@ -1495,7 +1495,7 @@ BEGIN
         confirmation_token, recovery_token, email_change_token_new, email_change
     ) VALUES (
         v_farine_id, v_instance_id, 'authenticated', 'authenticated',
-        v_farine_email, crypt(v_password, gen_salt('bf')),
+        v_farine_email, extensions.crypt(v_password, extensions.gen_salt('bf')),
         NOW(), v_farine_phone, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         '{"full_name":"Farine Khan"}'::jsonb,
@@ -1542,7 +1542,7 @@ BEGIN
         confirmation_token, recovery_token, email_change_token_new, email_change
     ) VALUES (
         v_darshan_id, v_instance_id, 'authenticated', 'authenticated',
-        v_darshan_email, crypt(v_password, gen_salt('bf')),
+        v_darshan_email, extensions.crypt(v_password, extensions.gen_salt('bf')),
         NOW(), v_darshan_phone, NOW(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         '{"full_name":"Darshan Salunkhe"}'::jsonb,
@@ -1901,3 +1901,119 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
     GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
     GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+
+
+-- ============================================================================
+-- FILE: 027_grant_api_privileges.sql
+-- ============================================================================
+
+-- ============================================================================
+-- Migration: 027_grant_api_privileges
+-- Purpose: After DROP SCHEMA / recreate, PostgREST roles (anon, authenticated)
+--          need table privileges. RLS still controls row access.
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public
+    TO anon, authenticated, service_role;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public
+    TO anon, authenticated, service_role;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public
+    TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES
+    TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES
+    TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT EXECUTE ON FUNCTIONS
+    TO anon, authenticated, service_role;
+
+
+-- ============================================================================
+-- FILE: 028_storage_buckets_and_policies.sql
+-- ============================================================================
+
+-- ============================================================================
+-- Migration: 028_storage_buckets_and_policies
+-- Purpose: Public buckets for restaurant banners and product photos.
+--          Authenticated users can upload; anyone can read.
+-- ============================================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  (
+    'restaurant-assets',
+    'restaurant-assets',
+    TRUE,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  ),
+  (
+    'product-images',
+    'product-images',
+    TRUE,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  )
+ON CONFLICT (id) DO UPDATE
+SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Public read
+DROP POLICY IF EXISTS restaurant_assets_public_read ON storage.objects;
+CREATE POLICY restaurant_assets_public_read
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'restaurant-assets');
+
+DROP POLICY IF EXISTS product_images_public_read ON storage.objects;
+CREATE POLICY product_images_public_read
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'product-images');
+
+-- Authenticated upload
+DROP POLICY IF EXISTS restaurant_assets_auth_upload ON storage.objects;
+CREATE POLICY restaurant_assets_auth_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'restaurant-assets');
+
+DROP POLICY IF EXISTS product_images_auth_upload ON storage.objects;
+CREATE POLICY product_images_auth_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'product-images');
+
+-- Authenticated update / delete (replace images)
+DROP POLICY IF EXISTS restaurant_assets_auth_update ON storage.objects;
+CREATE POLICY restaurant_assets_auth_update
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'restaurant-assets');
+
+DROP POLICY IF EXISTS product_images_auth_update ON storage.objects;
+CREATE POLICY product_images_auth_update
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'product-images');
+
+DROP POLICY IF EXISTS restaurant_assets_auth_delete ON storage.objects;
+CREATE POLICY restaurant_assets_auth_delete
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'restaurant-assets');
+
+DROP POLICY IF EXISTS product_images_auth_delete ON storage.objects;
+CREATE POLICY product_images_auth_delete
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'product-images');

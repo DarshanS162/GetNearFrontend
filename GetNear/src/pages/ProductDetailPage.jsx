@@ -31,7 +31,11 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="product-hero card">
-          <span className="product-hero-emoji">🍽️</span>
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt="" className="product-hero-img" />
+          ) : (
+            <span className="product-hero-emoji">🍽️</span>
+          )}
           {product.foodType === 'veg' && (
             <span className="badge badge-success product-veg">Veg</span>
           )}
@@ -76,7 +80,11 @@ export default function ProductDetailPage() {
           <div className="similar-list">
             {similar.map((item) => (
               <Link key={item.id} to={`/product/${item.id}`} className="similar-card card card-interactive">
-                <span>🍴</span>
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt="" className="similar-thumb" />
+                ) : (
+                  <span>🍴</span>
+                )}
                 <div>
                   <strong>{item.name}</strong>
                   <span>₹{item.price}</span>

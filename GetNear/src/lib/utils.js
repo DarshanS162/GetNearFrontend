@@ -42,6 +42,8 @@ export function mapRestaurant(row, owner = null) {
     isOpen: row.business_status === 'active' && row.is_active !== false,
     bannerColor: row.banner_color || '#FFF0E8',
     icon: row.icon_emoji || '🍽️',
+    bannerUrl: row.banner_url || '',
+    logoUrl: row.logo_url || '',
     category: row.category_slug || 'food',
     offer: row.offer_badge || '',
   };
@@ -71,6 +73,7 @@ export function mapProduct(row) {
     prepTime: Number(row.preparation_time_minutes) || 15,
     ingredients: row.ingredients || '',
     isAvailable: row.is_available !== false,
+    imageUrl: row.primary_image_url || '',
   };
 }
 
