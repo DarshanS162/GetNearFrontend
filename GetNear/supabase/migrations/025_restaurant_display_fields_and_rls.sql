@@ -116,11 +116,8 @@ CREATE POLICY users_update_own_or_admin ON public.users
         OR public.is_admin()
     );
 
--- Allow linking auth uuid on first OTP login (match by phone after signup)
-DROP POLICY IF EXISTS users_update_auth_link ON public.users;
-CREATE POLICY users_update_auth_link ON public.users
-    FOR UPDATE USING (TRUE)
-    WITH CHECK (auth_user_uuid = auth.uid());
+-- Profile linking on first login uses SECURITY DEFINER RPCs (claim_user_by_phone).
+-- Do NOT add an open UPDATE policy with USING (TRUE).
 
 -- ---------------------------------------------------------------------------
 -- RLS: restaurants — public read active; admin write; owner limited update

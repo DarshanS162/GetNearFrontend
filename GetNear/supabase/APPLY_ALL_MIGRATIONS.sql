@@ -1707,11 +1707,8 @@ CREATE POLICY users_update_own_or_admin ON public.users
         OR public.is_admin()
     );
 
--- Allow linking auth uuid on first OTP login (match by phone after signup)
-DROP POLICY IF EXISTS users_update_auth_link ON public.users;
-CREATE POLICY users_update_auth_link ON public.users
-    FOR UPDATE USING (TRUE)
-    WITH CHECK (auth_user_uuid = auth.uid());
+-- Profile linking on first login uses SECURITY DEFINER RPCs (claim_user_by_phone).
+-- Do NOT add an open UPDATE policy with USING (TRUE).
 
 -- ---------------------------------------------------------------------------
 -- RLS: restaurants â€” public read active; admin write; owner limited update
@@ -1944,7 +1941,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 -- ============================================================================
 -- Migration: 028_storage_buckets_and_policies
 -- Purpose: Public buckets for restaurant banners and product photos.
---          Authenticated users can upload; anyone can read.
+--          Read: anyone. Write: see 029 (admin / owner only).
 -- ============================================================================
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -1969,7 +1966,7 @@ SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Public read
+-- Public read only (customers need to see images)
 DROP POLICY IF EXISTS restaurant_assets_public_read ON storage.objects;
 CREATE POLICY restaurant_assets_public_read
   ON storage.objects FOR SELECT
@@ -1980,40 +1977,92 @@ CREATE POLICY product_images_public_read
   ON storage.objects FOR SELECT
   USING (bucket_id = 'product-images');
 
--- Authenticated upload
+
+-- ============================================================================
+-- FILE: 029_restrict_storage_and_user_update.sql
+-- ============================================================================
+
+-- ============================================================================
+-- Migration: 029_restrict_storage_and_user_update
+-- Purpose:
+--   1. Only admin / restaurant_owner can upload or change images
+--   2. Remove dangerous users UPDATE policy (USING TRUE)
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- Storage: drop open "any authenticated" write policies
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS restaurant_assets_auth_upload ON storage.objects;
-CREATE POLICY restaurant_assets_auth_upload
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'restaurant-assets');
-
-DROP POLICY IF EXISTS product_images_auth_upload ON storage.objects;
-CREATE POLICY product_images_auth_upload
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'product-images');
-
--- Authenticated update / delete (replace images)
 DROP POLICY IF EXISTS restaurant_assets_auth_update ON storage.objects;
-CREATE POLICY restaurant_assets_auth_update
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING (bucket_id = 'restaurant-assets');
-
-DROP POLICY IF EXISTS product_images_auth_update ON storage.objects;
-CREATE POLICY product_images_auth_update
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING (bucket_id = 'product-images');
-
 DROP POLICY IF EXISTS restaurant_assets_auth_delete ON storage.objects;
-CREATE POLICY restaurant_assets_auth_delete
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING (bucket_id = 'restaurant-assets');
-
+DROP POLICY IF EXISTS product_images_auth_upload ON storage.objects;
+DROP POLICY IF EXISTS product_images_auth_update ON storage.objects;
 DROP POLICY IF EXISTS product_images_auth_delete ON storage.objects;
-CREATE POLICY product_images_auth_delete
+
+-- Restaurant banners: admin only (owners don't create restaurants)
+CREATE POLICY restaurant_assets_admin_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'restaurant-assets'
+    AND public.is_admin()
+  );
+
+CREATE POLICY restaurant_assets_admin_update
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (
+    bucket_id = 'restaurant-assets'
+    AND public.is_admin()
+  );
+
+CREATE POLICY restaurant_assets_admin_delete
   ON storage.objects FOR DELETE
   TO authenticated
-  USING (bucket_id = 'product-images');
+  USING (
+    bucket_id = 'restaurant-assets'
+    AND public.is_admin()
+  );
+
+-- Menu photos: admin or restaurant owner
+CREATE POLICY product_images_staff_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'product-images'
+    AND (
+      public.is_admin()
+      OR public.current_role_slug() = 'restaurant_owner'
+    )
+  );
+
+CREATE POLICY product_images_staff_update
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (
+    bucket_id = 'product-images'
+    AND (
+      public.is_admin()
+      OR public.current_role_slug() = 'restaurant_owner'
+    )
+  );
+
+CREATE POLICY product_images_staff_delete
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'product-images'
+    AND (
+      public.is_admin()
+      OR public.current_role_slug() = 'restaurant_owner'
+    )
+  );
+
+-- Keep public read (customer app needs to display images)
+-- restaurant_assets_public_read / product_images_public_read unchanged
+
+-- ---------------------------------------------------------------------------
+-- users: remove open UPDATE policy
+-- Profile linking uses SECURITY DEFINER RPCs (claim_user_by_phone, etc.)
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS users_update_auth_link ON public.users;
