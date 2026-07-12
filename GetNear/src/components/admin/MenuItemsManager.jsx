@@ -48,6 +48,12 @@ export default function MenuItemsManager({
   const [filterRestaurant, setFilterRestaurant] = useState(lockedBusinessId || '');
   const [toast, setToast] = useState('');
   const [useNewCategory, setUseNewCategory] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const selectedBusinessId = lockedBusinessId || form.businessId;
+  const categoriesForRestaurant = menuCategories.filter(
+    (c) => !selectedBusinessId || c.restaurantId === selectedBusinessId,
+  );
 
   const scopedProducts = lockedBusinessId
     ? products.filter((p) => p.businessId === lockedBusinessId)
@@ -67,30 +73,38 @@ export default function MenuItemsManager({
     setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
+      ...(name === 'businessId' ? { categoryId: '' } : {}),
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const businessId = lockedBusinessId || form.businessId;
     if (!form.name.trim() || !businessId || !form.price) return;
     if (!useNewCategory && !form.categoryId) return;
     if (useNewCategory && !form.newCategoryName.trim()) return;
 
-    addProduct({
-      ...form,
-      businessId,
-      categoryId: useNewCategory ? undefined : form.categoryId,
-      newCategoryName: useNewCategory ? form.newCategoryName : undefined,
-    });
+    setSaving(true);
+    try {
+      await addProduct({
+        ...form,
+        businessId,
+        categoryId: useNewCategory ? undefined : form.categoryId,
+        newCategoryName: useNewCategory ? form.newCategoryName : undefined,
+      });
 
-    setForm({
-      ...emptyForm,
-      businessId,
-      categoryId: menuCategories[0]?.id || '',
-    });
-    setUseNewCategory(false);
-    showToast(`"${form.name}" added to menu`);
+      setForm({
+        ...emptyForm,
+        businessId,
+        categoryId: '',
+      });
+      setUseNewCategory(false);
+      showToast(`"${form.name}" added to menu`);
+    } catch (err) {
+      showToast(err.message || 'Failed to save item');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function getBusinessName(id) {
@@ -169,10 +183,14 @@ export default function MenuItemsManager({
                         <button
                           type="button"
                           className="btn-danger"
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm(`Delete "${item.name}"?`)) {
-                              deleteProduct(item.id);
-                              showToast(`Deleted ${item.name}`);
+                              try {
+                                await deleteProduct(item.id);
+                                showToast(`Deleted ${item.name}`);
+                              } catch (err) {
+                                showToast(err.message || 'Delete failed');
+                              }
                             }
                           }}
                         >
@@ -255,10 +273,10 @@ export default function MenuItemsManager({
                 onChange={handleChange}
                 required={!useNewCategory}
               >
-                {menuCategories.length === 0 ? (
+                {categoriesForRestaurant.length === 0 ? (
                   <option value="">Create a category first</option>
                 ) : (
-                  menuCategories.map((c) => (
+                  categoriesForRestaurant.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))
                 )}
@@ -378,9 +396,9 @@ export default function MenuItemsManager({
             <button
               type="submit"
               className="btn btn-primary btn-full"
-              disabled={!canAdd}
+              disabled={!canAdd || saving}
             >
-              Save menu item
+              {saving ? 'Saving…' : 'Save menu item'}
             </button>
           </div>
         </form>

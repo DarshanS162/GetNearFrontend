@@ -1,0 +1,37 @@
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
+project_id = "getnear"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[studio]
+enabled = true
+
+[auth]
+enabled = true
+# Phone OTP settings (SMS delivery handled by send-sms Auth Hook + AWS SNS)
+enable_signup = true
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+# Template is unused when Send SMS Hook is enabled (hook builds the message)
+template = "Your GetNear code is {{ .Code }}"
+
+# ---------------------------------------------------------------------------
+# Send SMS Hook → Edge Function (AWS SNS)
+# After deploy, set this URI in Dashboard OR keep config for local:
+#   https://<PROJECT_REF>.supabase.co/functions/v1/send-sms
+# ---------------------------------------------------------------------------
+[auth.hook.send_sms]
+enabled = true
+uri = "http://host.docker.internal:54321/functions/v1/send-sms"
+# secrets: set SEND_SMS_HOOK_SECRET via Dashboard / `supabase secrets set`
+# For hosted projects, configure the hook URI in Authentication → Hooks.
+
+[functions.send-sms]
+verify_jwt = false

@@ -8,7 +8,7 @@ import { categories } from '../data/mockData';
 import './HomePage.css';
 
 export default function HomePage() {
-  const { businesses, trendingDishes } = useCatalog();
+  const { businesses, trendingDishes, loading, error } = useCatalog();
   return (
     <div className="app-shell animate-in">
       <Navbar />
@@ -18,6 +18,19 @@ export default function HomePage() {
           <p>Order from trusted local businesses in minutes</p>
           <SearchBar placeholder="Search restaurants, dishes, stores..." />
         </section>
+
+        {error && (
+          <div className="empty-state card" style={{ marginBottom: 24 }}>
+            <p>Could not load stores from Supabase.</p>
+            <span className="empty-state-sub">{error}</span>
+          </div>
+        )}
+
+        {loading && (
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>
+            Loading nearby stores…
+          </p>
+        )}
 
         <section className="home-section">
           <h2 className="section-title">Popular categories</h2>

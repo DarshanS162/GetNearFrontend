@@ -125,3 +125,11 @@
   font-size: 14px;
   text-align: center;
 }
+
+.auth-password-input {
+  margin-bottom: var(--space-5);
+}
+
+.auth-switch-mode {
+  margin-top: var(--space-3);
+}

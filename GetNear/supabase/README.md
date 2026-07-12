@@ -9,13 +9,20 @@
 
 See [DATABASE.md](./DATABASE.md) for full schema documentation.
 
+### Reset + apply (SQL Editor — recommended)
+
+In **Supabase Dashboard → SQL Editor**, run in order:
+
+1. `RESET_DATABASE.sql` — wipes `public` schema + clears seeded admin auth users  
+2. `APPLY_ALL_MIGRATIONS.sql` — creates everything 000→026 (admins + table grants)
+
+### CLI (optional)
+
 ```bash
 cd GetNear
 supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
-
-Or run all 25 SQL files manually in the Supabase SQL Editor (000 → 024).
 
 ## 2. Enable Phone Auth
 
@@ -47,11 +54,11 @@ Create these buckets in Supabase Storage:
 
 ## 5. Admin users (migration 024)
 
-Two admins are seeded automatically — **no default restaurant**:
+Admins use **phone + password** in the UI (no OTP). Under the hood Auth uses email `{phone}@admin.getnear.app`.
 
-| Name | Phone |
-|------|-------|
-| Farine Khan | 8668879497 |
-| Darshan Salunkhe | 9552489313 |
+| Name | Phone | Password |
+|------|-------|----------|
+| Farine Khan | 8668879497 | `GetNear@123` |
+| Darshan Salunkhe | 9552489313 | `GetNear@123` |
 
-Add restaurants via Admin UI at `/admin/restaurants` after login.
+Login at `/admin/log-in`.

@@ -7,18 +7,24 @@ import { IconBack, IconStar, IconClock, IconBike } from '../components/ui/Icons'
 import './BusinessPage.css';
 
 export default function BusinessPage() {
-  const { id = 'sharma-tiffin' } = useParams();
-  const { getBusiness, getBusinessProducts, menuCategories } = useCatalog();
+  const { id } = useParams();
+  const { getBusiness, getBusinessProducts, menuCategories, loading } = useCatalog();
   const business = getBusiness(id);
-  const [activeCategory, setActiveCategory] = useState(menuCategories[0]?.id || '');
+  const businessCategories = menuCategories.filter((c) => c.restaurantId === id);
+  const [activeCategory, setActiveCategory] = useState('');
   const [search, setSearch] = useState('');
   const { addItem, removeItem, getQuantity, itemCount, total } = useCart();
 
-  if (!business) {
-    return <div className="page-container">Business not found</div>;
+  if (loading) {
+    return <div className="page-container" style={{ paddingTop: 48 }}>Loading menu…</div>;
   }
 
-  let menuItems = getBusinessProducts(id, activeCategory);
+  if (!business) {
+    return <div className="page-container" style={{ paddingTop: 48 }}>Business not found</div>;
+  }
+
+  const selectedCategory = activeCategory || businessCategories[0]?.id;
+  let menuItems = getBusinessProducts(id, selectedCategory);
   if (search.trim()) {
     const q = search.toLowerCase();
     menuItems = getBusinessProducts(id).filter(
@@ -82,11 +88,11 @@ export default function BusinessPage() {
         </div>
 
         <div className="chips-row menu-chips">
-          {menuCategories.map((cat) => (
+          {businessCategories.map((cat) => (
             <button
               key={cat.id}
               type="button"
-              className={`chip ${activeCategory === cat.id ? 'chip-active' : ''}`}
+              className={`chip ${selectedCategory === cat.id ? 'chip-active' : ''}`}
               onClick={() => setActiveCategory(cat.id)}
             >
               {cat.name}

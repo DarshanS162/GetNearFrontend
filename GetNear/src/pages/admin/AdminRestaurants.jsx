@@ -25,6 +25,7 @@ export default function AdminRestaurants() {
   const { businesses, addRestaurant, deleteRestaurant, slugify } = useCatalog();
   const [form, setForm] = useState(emptyForm);
   const [toast, setToast] = useState('');
+  const [saving, setSaving] = useState(false);
 
   function showToast(msg) {
     setToast(msg);
@@ -36,13 +37,20 @@ export default function AdminRestaurants() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim() || !form.ownerPhone.trim() || !form.ownerName.trim()) return;
 
-    addRestaurant(form);
-    setForm(emptyForm);
-    showToast(`Restaurant "${form.name}" added successfully`);
+    setSaving(true);
+    try {
+      await addRestaurant(form);
+      setForm(emptyForm);
+      showToast(`Restaurant "${form.name}" added successfully`);
+    } catch (err) {
+      showToast(err.message || 'Failed to save restaurant');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -92,10 +100,14 @@ export default function AdminRestaurants() {
                       <button
                         type="button"
                         className="btn-danger"
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm(`Delete "${biz.name}" and all its menu items?`)) {
-                            deleteRestaurant(biz.id);
-                            showToast(`Deleted ${biz.name}`);
+                            try {
+                              await deleteRestaurant(biz.id);
+                              showToast(`Deleted ${biz.name}`);
+                            } catch (err) {
+                              showToast(err.message || 'Delete failed');
+                            }
                           }
                         }}
                       >
@@ -344,8 +356,8 @@ export default function AdminRestaurants() {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary btn-full">
-              Save restaurant
+            <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
+              {saving ? 'Saving…' : 'Save restaurant'}
             </button>
           </div>
         </form>

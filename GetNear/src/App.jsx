@@ -9,7 +9,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import ProfilePage from './pages/ProfilePage';
-import LoginPage, { OtpPage, SignupPage } from './pages/AuthPages';
+import LoginPage, { OtpPage, SetPasswordPage, SignupPage } from './pages/AuthPages';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminRestaurants from './pages/admin/AdminRestaurants';
@@ -37,6 +37,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/otp" element={<OtpPage />} />
+              <Route path="/set-password" element={<SetPasswordPage />} />
 
               <Route path="/admin/log-in" element={<AdminLoginPage />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />

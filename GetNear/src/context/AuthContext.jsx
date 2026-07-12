@@ -1,51 +1,246 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { adminUsers } from '../data/mockData';
-
-const AUTH_KEY = 'getnear-auth';
-
-export function normalizePhone(phone) {
-  return String(phone || '').replace(/\D/g, '').slice(-10);
-}
-
-function loadSession() {
-  try {
-    const raw = sessionStorage.getItem(AUTH_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { PENDING_NAME } from '../lib/authKeys';
+import {
+  getPostLoginPath,
+  normalizePhone,
+  toE164India,
+} from '../lib/utils';
 
 const AuthContext = createContext(null);
 
+async function fetchProfileByAuthId(authUserId) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, full_name, phone, role_id, auth_user_uuid, roles(slug, name)')
+    .eq('auth_user_uuid', authUserId)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+async function claimAndLoadProfile(authUser, phoneHint) {
+  const phone = toE164India(phoneHint || authUser.phone) || phoneHint || authUser.phone;
+
+  const { data: claimed, error: claimError } = await supabase.rpc('claim_user_by_phone', {
+    p_phone: phone || authUser.phone || '',
+  });
+
+  if (claimError) {
+    console.warn('claim_user_by_phone:', claimError.message);
+  }
+
+  let profile = claimed || (await fetchProfileByAuthId(authUser.id));
+
+  if (!profile) {
+    const pendingName = sessionStorage.getItem(PENDING_NAME);
+    const { data: created, error: createError } = await supabase.rpc(
+      'ensure_customer_profile',
+      {
+        p_full_name:
+          pendingName || authUser.user_metadata?.full_name || 'Customer',
+        p_phone: phone || authUser.phone || '',
+      },
+    );
+    if (createError) console.warn('ensure_customer_profile:', createError.message);
+    else profile = created;
+  }
+
+  if (!profile) return null;
+
+  // Reload with role join if claim/create returned plain row
+  if (!profile.roles) {
+    profile = await fetchProfileByAuthId(authUser.id);
+  }
+
+  if (!profile) return null;
+
+  let restaurantId = null;
+  const roleSlug = profile.roles?.slug || profile.role_slug;
+
+  if (roleSlug === 'restaurant_owner') {
+    const { data: owned } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('owner_id', profile.id)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+    restaurantId = owned?.id || null;
+  }
+
+  return {
+    id: profile.id,
+    authUserId: authUser.id,
+    role: roleSlug || 'customer',
+    phone: normalizePhone(profile.phone),
+    fullName: profile.full_name || 'User',
+    restaurantId,
+  };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(loadSession);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
-  function login(session) {
-    setUser(session);
-    sessionStorage.setItem(AUTH_KEY, JSON.stringify(session));
+  const syncSession = useCallback(async (session) => {
+    if (!session?.user) {
+      setUser(null);
+      return null;
+    }
+    try {
+      const profile = await claimAndLoadProfile(session.user, session.user.phone);
+      setUser(profile);
+      return profile;
+    } catch (err) {
+      console.error(err);
+      setAuthError(err.message || 'Failed to load profile');
+      setUser(null);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      syncSession(data.session).finally(() => {
+        if (mounted) setLoading(false);
+      });
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [syncSession]);
+
+  async function sendOtp(phone) {
+    setAuthError('');
+    const e164 = toE164India(phone);
+    if (!e164) {
+      const msg = 'Enter a valid 10-digit mobile number';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
+    if (error) {
+      setAuthError(error.message);
+      return { error: error.message, phone: e164 };
+    }
+    return { phone: e164 };
   }
 
-  function logout() {
+  async function verifyOtp(phone, token) {
+    setAuthError('');
+    const e164 = toE164India(phone) || phone;
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: e164,
+      token: String(token).trim(),
+      type: 'sms',
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      return { error: error.message };
+    }
+
+    const profile = await syncSession(data.session);
+    return { user: profile, session: data.session };
+  }
+
+  async function loginWithPassword(phone, password) {
+    setAuthError('');
+    const digits = normalizePhone(phone);
+    if (digits.length !== 10) {
+      const msg = 'Enter a valid 10-digit mobile number';
+      setAuthError(msg);
+      return { error: msg };
+    }
+    if (!password) {
+      const msg = 'Enter your password';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    // Admins are seeded as email+password: {phone}@admin.getnear.app
+    const adminEmail = `${digits}@admin.getnear.app`;
+    let { data, error } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password,
+    });
+
+    // Customers may use phone+password after OTP signup
+    if (error) {
+      const e164 = toE164India(phone);
+      ({ data, error } = await supabase.auth.signInWithPassword({
+        phone: e164,
+        password,
+      }));
+    }
+
+    if (error) {
+      setAuthError(error.message);
+      return { error: error.message };
+    }
+
+    const profile = await syncSession(data.session);
+    return { user: profile, session: data.session };
+  }
+
+  async function savePassword(password) {
+    setAuthError('');
+    if (!password || password.length < 6) {
+      const msg = 'Password must be at least 6 characters';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setAuthError(error.message);
+      return { error: error.message };
+    }
+    return { ok: true };
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
     setUser(null);
-    sessionStorage.removeItem(AUTH_KEY);
   }
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isRestaurantOwner = user?.role === 'restaurant_owner';
 
   const value = useMemo(
     () => ({
       user,
+      loading,
+      authError,
+      setAuthError,
       isAdmin,
       isRestaurantOwner,
       isAuthenticated: Boolean(user),
-      login,
+      sendOtp,
+      verifyOtp,
+      loginWithPassword,
+      savePassword,
       logout,
+      syncSession,
       normalizePhone,
+      toE164India,
+      getPostLoginPath,
     }),
-    [user, isAdmin, isRestaurantOwner],
+    [user, loading, authError, isAdmin, isRestaurantOwner],
   );
 
   return (
@@ -59,45 +254,4 @@ export function useAuth() {
   return ctx;
 }
 
-/** Resolve role from phone against admins and restaurant owner assignments. */
-export function resolveUserFromPhone(phone, businesses) {
-  const normalized = normalizePhone(phone);
-  if (normalized.length < 10) return null;
-
-  const admin = adminUsers.find(
-    (a) => normalizePhone(a.phone) === normalized,
-  );
-  if (admin) {
-    return {
-      role: 'admin',
-      phone: normalized,
-      fullName: admin.fullName,
-      restaurantId: null,
-    };
-  }
-
-  const owned = businesses.find(
-    (b) => normalizePhone(b.ownerPhone) === normalized,
-  );
-  if (owned) {
-    return {
-      role: 'restaurant_owner',
-      phone: normalized,
-      fullName: owned.ownerName || owned.name,
-      restaurantId: owned.id,
-    };
-  }
-
-  return {
-    role: 'customer',
-    phone: normalized,
-    fullName: 'Customer',
-    restaurantId: null,
-  };
-}
-
-export function getPostLoginPath(user) {
-  if (user?.role === 'admin') return '/admin';
-  if (user?.role === 'restaurant_owner') return '/owner/menu';
-  return '/';
-}
+export { getPostLoginPath, normalizePhone, toE164India };
