@@ -221,6 +221,45 @@ export function CatalogProvider({ children }) {
     throw new Error('Could not create unique restaurant slug');
   }
 
+  async function updateRestaurant(id, data) {
+    const ownerId = await ensureOwnerUser({
+      ownerName: data.ownerName,
+      ownerPhone: data.ownerPhone,
+    });
+
+    const payload = {
+      name: data.name.trim(),
+      description: data.description || null,
+      cuisine_type: data.type || null,
+      location_label: data.location || null,
+      contact_phone: data.contactPhone || null,
+      contact_email: data.contactEmail || null,
+      gst_number: data.gstNumber || null,
+      fssai_number: data.fssaiNumber || null,
+      business_status: data.businessStatus || 'active',
+      is_active: (data.businessStatus || 'active') === 'active',
+      delivery_time_minutes: Number(data.deliveryTime) || 30,
+      free_delivery_above: Number(data.freeDeliveryAbove) || 299,
+      banner_color: data.bannerColor || '#FFF0E8',
+      icon_emoji: data.icon || '🍽️',
+      offer_badge: data.offer || null,
+      category_slug: data.category || 'food',
+      owner_id: ownerId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.bannerUrl) payload.banner_url = data.bannerUrl;
+    if (data.logoUrl) payload.logo_url = data.logoUrl;
+
+    const { error } = await supabase
+      .from('restaurants')
+      .update(payload)
+      .eq('id', id);
+
+    if (error) throw error;
+    await refreshCatalog();
+  }
+
   async function deleteRestaurant(id) {
     const { error } = await supabase
       .from('restaurants')
@@ -295,6 +334,55 @@ export function CatalogProvider({ children }) {
     throw new Error('Could not create product');
   }
 
+  async function updateProduct(id, data) {
+    let categoryId = data.categoryId;
+
+    if (data.newCategoryName?.trim()) {
+      const catSlug = slugify(data.newCategoryName) || `cat-${Date.now()}`;
+      const { data: cat, error: catError } = await supabase
+        .from('categories')
+        .insert({
+          restaurant_id: data.businessId,
+          name: data.newCategoryName.trim(),
+          slug: catSlug,
+          display_order: 0,
+          is_active: true,
+        })
+        .select('*')
+        .single();
+
+      if (catError) throw catError;
+      categoryId = cat.id;
+    }
+
+    if (!categoryId) throw new Error('Category is required');
+
+    const price = Number(data.price);
+    const mrp = Number(data.mrp) || price;
+    if (mrp < price) throw new Error('MRP must be greater than or equal to selling price');
+
+    const payload = {
+      restaurant_id: data.businessId,
+      category_id: categoryId,
+      name: data.name.trim(),
+      description: data.description || null,
+      food_type: data.foodType || 'veg',
+      mrp,
+      selling_price: price,
+      discount_amount: Math.max(0, mrp - price),
+      preparation_time_minutes: Number(data.prepTime) || 15,
+      is_available: data.isAvailable !== false,
+      ingredients: data.ingredients || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.imageUrl) payload.primary_image_url = data.imageUrl;
+
+    const { error } = await supabase.from('products').update(payload).eq('id', id);
+    if (error) throw error;
+    await refreshCatalog();
+  }
+
   async function deleteProduct(id) {
     const { error } = await supabase
       .from('products')
@@ -324,8 +412,10 @@ export function CatalogProvider({ children }) {
     getMenuCategoriesForBusiness,
     getBusinessByOwnerPhone,
     addRestaurant,
+    updateRestaurant,
     deleteRestaurant,
     addProduct,
+    updateProduct,
     deleteProduct,
     slugify,
   };
