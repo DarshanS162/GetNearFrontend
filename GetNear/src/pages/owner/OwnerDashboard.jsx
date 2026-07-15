@@ -48,9 +48,14 @@ export default function OwnerDashboard() {
         </p>
       </div>
 
-      <Link to="/owner/menu" className="btn btn-primary">
-        Manage my menu
-      </Link>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link to="/owner/orders" className="btn btn-primary">
+          View orders
+        </Link>
+        <Link to="/owner/menu" className="btn btn-secondary">
+          Manage my menu
+        </Link>
+      </div>
     </>
   );
 }

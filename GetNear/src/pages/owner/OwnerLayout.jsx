@@ -6,6 +6,7 @@ import '../admin/AdminLayout.css';
 
 const navItems = [
   { to: '/owner', label: 'Dashboard', end: true },
+  { to: '/owner/orders', label: 'Orders' },
   { to: '/owner/menu', label: 'My menu' },
 ];
 

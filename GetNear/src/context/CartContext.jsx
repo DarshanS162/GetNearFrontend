@@ -71,6 +71,12 @@ export function CartProvider({ children }) {
     return items.find((i) => i.productId === productId)?.quantity ?? 0;
   }
 
+  function clearCart() {
+    setItems([]);
+    setBusinessId('');
+    setCoupon(null);
+  }
+
   const value = {
     businessId,
     business,
@@ -87,6 +93,7 @@ export function CartProvider({ children }) {
     removeItem,
     getQuantity,
     setBusinessId,
+    clearCart,
   };
 
   return (

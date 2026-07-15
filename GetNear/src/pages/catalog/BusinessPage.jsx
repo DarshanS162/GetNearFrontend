@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useCatalog } from '../context/CatalogContext';
-import { SearchBar, QuantityControl, StickyCartBar } from '../components/ui/Shared';
-import { IconBack, IconStar, IconClock, IconBike } from '../components/ui/Icons';
+import { useCart } from '../../context/CartContext';
+import { useCatalog } from '../../context/CatalogContext';
+import { SearchBar, QuantityControl, StickyCartBar } from '../../components/ui/Shared';
+import { IconBack, IconStar, IconClock, IconBike } from '../../components/ui/Icons';
 import './BusinessPage.css';
 
 export default function BusinessPage() {

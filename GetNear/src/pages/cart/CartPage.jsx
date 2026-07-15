@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { IconBack, IconChevron, IconTicket } from '../components/ui/Icons';
-import { QuantityControl } from '../components/ui/Shared';
+import { useCart } from '../../context/CartContext';
+import { IconBack, IconChevron, IconTicket } from '../../components/ui/Icons';
+import { QuantityControl } from '../../components/ui/Shared';
 import './CartPage.css';
 
 export default function CartPage() {

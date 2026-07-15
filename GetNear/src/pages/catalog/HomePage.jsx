@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Navbar } from '../components/layout/Navbar';
-import { Footer } from '../components/layout/Footer';
-import { SearchBar } from '../components/ui/Shared';
-import { IconStar } from '../components/ui/Icons';
-import { useCatalog } from '../context/CatalogContext';
-import { categories } from '../data/mockData';
+import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
+import { SearchBar } from '../../components/ui/Shared';
+import { IconStar } from '../../components/ui/Icons';
+import { useCatalog } from '../../context/CatalogContext';
+import { categories } from '../../data/mockData';
 import './HomePage.css';
 
 export default function HomePage() {
