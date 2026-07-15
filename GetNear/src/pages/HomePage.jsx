@@ -14,7 +14,11 @@ export default function HomePage() {
       <Navbar />
       <main className="page-container home-page">
         <section className="hero">
-          <h1>Great food,<br />right nearby</h1>
+          <h1>
+            Great food,
+            <br />
+            <span className="hero-accent">right nearby</span>
+          </h1>
           <p>Order from trusted local businesses in minutes</p>
           <SearchBar placeholder="Search restaurants, dishes, stores..." />
         </section>

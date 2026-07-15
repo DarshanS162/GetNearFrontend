@@ -3,21 +3,29 @@
 }
 
 .hero {
-  padding: var(--space-6) 0 var(--space-8);
+  padding: var(--space-4) 0 var(--space-6);
 }
 
 .hero h1 {
-  font-size: 32px;
+  font-family: var(--font-heading);
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-bottom: var(--space-3);
-  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 0 0 var(--space-2);
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.hero-accent {
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .hero p {
   color: var(--color-text-secondary);
-  font-size: 16px;
-  margin: 0 0 var(--space-6);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0 0 var(--space-5);
 }
 
 .home-section {
@@ -280,6 +288,6 @@
   }
 
   .hero h1 {
-    font-size: 40px;
+    font-size: 30px;
   }
 }
