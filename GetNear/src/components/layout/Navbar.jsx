@@ -7,18 +7,20 @@ export function Navbar({ showLocation = true }) {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <Link to="/" aria-label="GetNear home">
+        <Link to="/" aria-label="GetNear home" className="navbar-brand">
           <Logo size="sm" />
         </Link>
-        {showLocation && (
-          <div className="navbar-location">
-            <IconLocation size={16} />
-            <span>Andheri West, Mumbai</span>
-          </div>
-        )}
-        <Link to="/profile" className="navbar-profile" aria-label="Profile">
-          <IconUser size={20} />
-        </Link>
+        <div className="navbar-right">
+          {showLocation && (
+            <div className="navbar-location">
+              <IconLocation size={16} />
+              <span>Andheri West, Mumbai</span>
+            </div>
+          )}
+          <Link to="/profile" className="navbar-profile" aria-label="Profile">
+            <IconUser size={20} />
+          </Link>
+        </div>
       </div>
     </header>
   );
