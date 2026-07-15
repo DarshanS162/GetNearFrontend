@@ -1,8 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useCatalog } from '../context/CatalogContext';
-import { IconBack } from '../components/ui/Icons';
-import { QuantityControl } from '../components/ui/Shared';
+import { useCart } from '../../context/CartContext';
+import { useCatalog } from '../../context/CatalogContext';
+import { IconBack } from '../../components/ui/Icons';
+import { QuantityControl } from '../../components/ui/Shared';
 import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {

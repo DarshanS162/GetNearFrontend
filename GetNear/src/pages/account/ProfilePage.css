@@ -3,6 +3,19 @@
   padding-bottom: var(--space-10);
 }
 
+.profile-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.profile-page .page-header h1 {
+  flex: 1;
+  font-size: 20px;
+  margin: 0;
+}
+
 .profile-header {
   display: flex;
   align-items: center;
@@ -25,9 +38,11 @@
   font-family: var(--font-heading);
 }
 
-.profile-header h1 {
+.profile-name {
   font-size: 20px;
-  margin-bottom: 4px;
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-weight: 700;
 }
 
 .profile-header p {

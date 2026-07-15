@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Logo } from '../../components/ui/Logo';
 import { useAuth } from '../../context/AuthContext';
-import '../AuthPages.css';
+import '../auth/AuthPages.css';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();

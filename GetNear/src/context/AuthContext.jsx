@@ -92,7 +92,23 @@ export function AuthProvider({ children }) {
       return null;
     }
     try {
-      const profile = await claimAndLoadProfile(session.user, session.user.phone);
+      let profile = await claimAndLoadProfile(session.user, session.user.phone);
+
+      // Ensure RLS helper can see this login (addresses/orders policies depend on it).
+      const { data: appUserId } = await supabase.rpc('current_app_user_id');
+      if (!appUserId) {
+        await supabase.rpc('ensure_customer_profile', {
+          p_full_name:
+            profile?.fullName ||
+            session.user.user_metadata?.full_name ||
+            'Customer',
+          p_phone: session.user.phone || profile?.phone || '',
+        });
+        profile = await claimAndLoadProfile(session.user, session.user.phone);
+      } else if (profile && profile.id !== appUserId) {
+        profile = { ...profile, id: appUserId };
+      }
+
       setUser(profile);
       return profile;
     } catch (err) {

@@ -522,7 +522,8 @@ img {
 .timeline::before {
   content: '';
   position: absolute;
-  top: 20px;
+  /* Center through 36px dots: padding-top + half dot height */
+  top: calc(var(--space-4) + 18px);
   left: 10%;
   right: 10%;
   height: 2px;

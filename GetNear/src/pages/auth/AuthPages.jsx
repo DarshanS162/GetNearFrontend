@@ -1,12 +1,12 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Logo } from '../components/ui/Logo';
-import { useAuth } from '../context/AuthContext';
+import { Logo } from '../../components/ui/Logo';
+import { useAuth } from '../../context/AuthContext';
 import {
   IS_SIGNUP,
   PENDING_NAME,
   PENDING_PHONE,
-} from '../lib/authKeys';
+} from '../../lib/authKeys';
 import './AuthPages.css';
 
 export default function LoginPage() {
