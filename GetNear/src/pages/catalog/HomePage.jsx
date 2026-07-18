@@ -1,14 +1,33 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { SearchBar } from '../../components/ui/Shared';
 import { IconStar } from '../../components/ui/Icons';
+import { useMemo } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
+import { useAuth } from '../../context/AuthContext';
 import { categories } from '../../data/mockData';
+import { isCustomerVisible } from '../../domain/restaurant';
 import './HomePage.css';
 
 export default function HomePage() {
   const { businesses, trendingDishes, loading, error } = useCatalog();
+  const { loading: authLoading, isAdmin, isRestaurantOwner } = useAuth();
+  const [searchParams] = useSearchParams();
+  const customerView = searchParams.get('view') === 'customer';
+  const liveBusinesses = useMemo(
+    () => businesses.filter(isCustomerVisible),
+    [businesses],
+  );
+
+  // Owners/admins land on their panel by default; ?view=customer keeps customer browse.
+  if (!authLoading && !customerView && isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+  if (!authLoading && !customerView && isRestaurantOwner) {
+    return <Navigate to="/owner" replace />;
+  }
+
   return (
     <div className="app-shell animate-in">
       <Navbar />
@@ -57,7 +76,7 @@ export default function HomePage() {
           <div className="section-header">
             <h2 className="section-title" style={{ margin: 0 }}>Featured near you</h2>
           </div>
-          {businesses.length === 0 ? (
+          {liveBusinesses.length === 0 ? (
             <div className="empty-state card">
               <p>No stores nearby yet.</p>
               <span className="empty-state-sub">
@@ -66,7 +85,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="business-scroll">
-              {businesses.map((biz) => (
+              {liveBusinesses.map((biz) => (
                 <Link
                   key={biz.id}
                   to={`/business/${biz.id}`}
@@ -86,7 +105,14 @@ export default function HomePage() {
                     )}
                   </div>
                   <div className="business-info">
-                    <h3>{biz.name}</h3>
+                    <h3>
+                      {biz.name}
+                      {!biz.isOpen && (
+                        <span className="badge" style={{ marginLeft: 8, fontSize: 11 }}>
+                          Closed
+                        </span>
+                      )}
+                    </h3>
                     <p className="business-meta">{biz.type}</p>
                     <p className="business-stats">
                       <IconStar size={12} filled /> {biz.rating} · {biz.deliveryTime} min

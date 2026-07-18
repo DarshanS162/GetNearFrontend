@@ -35,10 +35,12 @@ export function mapRestaurant(row, owner = null) {
     ownerPhone: owner?.phone || '',
     ownerName: owner?.full_name || '',
     businessStatus: row.business_status || 'active',
+    rejectionReason: row.rejection_reason || '',
     rating: 4.0,
     reviews: 0,
     deliveryTime: Number(row.delivery_time_minutes) || 30,
     freeDeliveryAbove: Number(row.free_delivery_above) || 299,
+    isActive: row.is_active !== false,
     isOpen: row.business_status === 'active' && row.is_active !== false,
     bannerColor: row.banner_color || '#FFF0E8',
     icon: row.icon_emoji || '🍽️',
@@ -79,6 +81,6 @@ export function mapProduct(row) {
 
 export function getPostLoginPath(user) {
   if (user?.role === 'admin' || user?.role === 'super_admin') return '/admin';
-  if (user?.role === 'restaurant_owner') return '/owner/menu';
+  if (user?.role === 'restaurant_owner') return '/owner';
   return '/';
 }

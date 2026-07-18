@@ -6,6 +6,7 @@ import './AdminLayout.css';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', end: true },
+  { to: '/admin/applications', label: 'Applications' },
   { to: '/admin/restaurants', label: 'Restaurants' },
   { to: '/admin/products', label: 'All menu items' },
 ];
@@ -42,7 +43,11 @@ export default function AdminLayout() {
             <button type="button" className="admin-back-link" onClick={logout}>
               Logout
             </button>
-            <NavLink to="/" className="admin-back-link" style={{ display: 'block', marginTop: 8 }}>
+            <NavLink
+              to="/?view=customer"
+              className="admin-back-link"
+              style={{ display: 'block', marginTop: 8 }}
+            >
               ← Customer app
             </NavLink>
           </div>

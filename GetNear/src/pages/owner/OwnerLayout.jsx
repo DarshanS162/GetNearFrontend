@@ -8,6 +8,7 @@ const navItems = [
   { to: '/owner', label: 'Dashboard', end: true },
   { to: '/owner/orders', label: 'Orders' },
   { to: '/owner/menu', label: 'My menu' },
+  { to: '/owner/settings', label: 'Store settings' },
 ];
 
 export default function OwnerLayout() {
@@ -42,7 +43,11 @@ export default function OwnerLayout() {
             <button type="button" className="admin-back-link" onClick={logout}>
               Logout
             </button>
-            <NavLink to="/" className="admin-back-link" style={{ display: 'block', marginTop: 8 }}>
+            <NavLink
+              to="/?view=customer"
+              className="admin-back-link"
+              style={{ display: 'block', marginTop: 8 }}
+            >
               ← Customer app
             </NavLink>
           </div>

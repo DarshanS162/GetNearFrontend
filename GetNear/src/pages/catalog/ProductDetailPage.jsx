@@ -1,19 +1,37 @@
 import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useCatalog } from '../../context/CatalogContext';
+import { useAuth } from '../../context/AuthContext';
 import { IconBack } from '../../components/ui/Icons';
 import { QuantityControl } from '../../components/ui/Shared';
+import { isCustomerVisible } from '../../domain/restaurant';
 import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
-  const { getProduct, products } = useCatalog();
+  const { getProduct, getBusiness, products } = useCatalog();
+  const { isAdmin, user } = useAuth();
   const product = getProduct(id);
   const { addItem, removeItem, getQuantity } = useCart();
   const qty = getQuantity(id);
 
   if (!product) {
     return <div className="page-container">Product not found</div>;
+  }
+
+  const business = getBusiness(product.businessId);
+  const canPreview =
+    isAdmin || (user?.restaurantId && user.restaurantId === product.businessId);
+
+  if (!business || (!isCustomerVisible(business) && !canPreview)) {
+    return (
+      <div className="page-container" style={{ paddingTop: 48 }}>
+        <p>This item is not available yet.</p>
+        <Link to="/" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+          Back to home
+        </Link>
+      </div>
+    );
   }
 
   const similar = products

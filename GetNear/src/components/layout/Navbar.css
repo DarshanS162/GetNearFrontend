@@ -60,6 +60,23 @@
   flex-shrink: 0;
 }
 
+.navbar-panel-link {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 107, 53, 0.35);
+  background: rgba(255, 107, 53, 0.08);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-panel-link:hover {
+  background: rgba(255, 107, 53, 0.16);
+}
+
 .navbar-profile {
   width: 34px;
   height: 34px;

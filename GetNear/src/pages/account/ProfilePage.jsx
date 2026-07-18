@@ -7,7 +7,7 @@ import { useAddresses } from '../../presentation/hooks/useAddresses';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout, loading } = useAuth();
+  const { user, isAuthenticated, logout, loading, isAdmin, isRestaurantOwner } = useAuth();
   const { defaultAddress } = useAddresses();
   const navigate = useNavigate();
 
@@ -45,6 +45,17 @@ export default function ProfilePage() {
   }
 
   const menuItems = [
+    ...(isRestaurantOwner
+      ? [{ label: 'Owner dashboard', to: '/owner', icon: '🏪' }]
+      : []),
+    ...(isAdmin
+      ? [{ label: 'Admin panel', to: '/admin', icon: '🛠️' }]
+      : []),
+    {
+      label: 'Set / change password',
+      to: `/set-password?next=${encodeURIComponent(isRestaurantOwner ? '/owner' : isAdmin ? '/admin' : '/profile')}`,
+      icon: '🔐',
+    },
     { label: 'Saved addresses', to: '/addresses', icon: '📍' },
     { label: 'Previous orders', to: '/orders', icon: '📦' },
   ];
@@ -73,6 +84,12 @@ export default function ProfilePage() {
             <p className="profile-email">{user.role}</p>
           </div>
         </div>
+
+        {isRestaurantOwner && (
+          <Link to="/owner" className="btn btn-primary btn-full" style={{ marginBottom: 16 }}>
+            Open owner dashboard
+          </Link>
+        )}
 
         {defaultAddress && (
           <div className="profile-address card">

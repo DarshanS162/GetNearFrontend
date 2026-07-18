@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { Logo } from '../ui/Logo';
 import { IconLocation, IconUser } from '../ui/Icons';
 import { getCurrentLocationLabel } from '../../lib/location';
+import { useAuth } from '../../context/AuthContext';
 import './Navbar.css';
 
 export function Navbar({ showLocation = true }) {
+  const { user, isAdmin, isRestaurantOwner } = useAuth();
   const [locationLabel, setLocationLabel] = useState('Detecting...');
 
   useEffect(() => {
@@ -38,6 +40,16 @@ export function Navbar({ showLocation = true }) {
               <IconLocation size={16} />
               <span>{locationLabel}</span>
             </div>
+          )}
+          {isAdmin && (
+            <Link to="/admin" className="navbar-panel-link">
+              Admin
+            </Link>
+          )}
+          {isRestaurantOwner && (
+            <Link to="/owner" className="navbar-panel-link">
+              Owner
+            </Link>
           )}
           <Link to="/profile" className="navbar-profile" aria-label="Profile">
             <IconUser size={16} />

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { SupabaseAddressRepository } from '../infrastructure/supabase/SupabaseAddressRepository';
 import { SupabaseBranchRepository } from '../infrastructure/supabase/SupabaseBranchRepository';
 import { SupabaseOrderRepository } from '../infrastructure/supabase/SupabaseOrderRepository';
+import { SupabasePartnerRepository } from '../infrastructure/supabase/SupabasePartnerRepository';
 import { ListAddresses } from './use-cases/ListAddresses';
 import { CreateAddress } from './use-cases/CreateAddress';
 import { UpdateAddress } from './use-cases/UpdateAddress';
@@ -16,15 +17,23 @@ import { GetOrder } from './use-cases/GetOrder';
 import { ListCustomerOrders } from './use-cases/ListCustomerOrders';
 import { ListRestaurantOrders } from './use-cases/ListRestaurantOrders';
 import { UpdateOrderStatus } from './use-cases/UpdateOrderStatus';
+import { SubmitPartnerApplication } from './use-cases/SubmitPartnerApplication';
+import { ListPendingApplications } from './use-cases/ListPendingApplications';
+import { ApprovePartnerApplication } from './use-cases/ApprovePartnerApplication';
+import { RejectPartnerApplication } from './use-cases/RejectPartnerApplication';
+import { UpdateOwnerStoreSettings } from './use-cases/UpdateOwnerStoreSettings';
+import { SetStoreOpen } from './use-cases/SetStoreOpen';
 
 const addressRepository = new SupabaseAddressRepository(supabase);
 const branchRepository = new SupabaseBranchRepository(supabase);
 const orderRepository = new SupabaseOrderRepository(supabase);
+const partnerRepository = new SupabasePartnerRepository(supabase);
 
 const deps = {
   addressRepository,
   branchRepository,
   orderRepository,
+  partnerRepository,
   supabaseClient: supabase,
 };
 
@@ -42,4 +51,13 @@ export const orderUseCases = {
   listForCustomer: new ListCustomerOrders(deps),
   listForRestaurant: new ListRestaurantOrders(deps),
   updateStatus: new UpdateOrderStatus(deps),
+};
+
+export const partnerUseCases = {
+  submit: new SubmitPartnerApplication(deps),
+  listPending: new ListPendingApplications(deps),
+  approve: new ApprovePartnerApplication(deps),
+  reject: new RejectPartnerApplication(deps),
+  updateStore: new UpdateOwnerStoreSettings(deps),
+  setOpen: new SetStoreOpen(deps),
 };

@@ -26,7 +26,10 @@ export default function LoginPage() {
     setBusy(false);
     if (result.error) return;
 
-    navigate(searchParams.get('redirect') || getPostLoginPath(result.user));
+    const redirect = searchParams.get('redirect');
+    const dest = getPostLoginPath(result.user);
+    // Keep intentional redirects (e.g. /partner), but don't stick owners on "/"
+    navigate(redirect && redirect !== '/' ? redirect : dest);
   }
 
   async function handleSendOtp() {
@@ -118,6 +121,8 @@ export default function LoginPage() {
 
         <p className="auth-footer">
           New customer? <Link to="/signup">Create an account</Link>
+          <br />
+          Restaurant owner? <Link to="/partner">Partner with GetNear</Link>
         </p>
       </main>
     </div>
@@ -126,6 +131,7 @@ export default function LoginPage() {
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { sendOtp, authError, setAuthError } = useAuth();
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -141,7 +147,8 @@ export function SignupPage() {
     sessionStorage.setItem(PENDING_PHONE, phone.trim());
     sessionStorage.setItem(IS_SIGNUP, '1');
     if (name.trim()) sessionStorage.setItem(PENDING_NAME, name.trim());
-    navigate('/otp');
+    const redirect = searchParams.get('redirect');
+    navigate(redirect ? `/otp?redirect=${encodeURIComponent(redirect)}` : '/otp');
   }
 
   return (
@@ -236,14 +243,24 @@ export function OtpPage() {
     sessionStorage.removeItem(PENDING_PHONE);
     sessionStorage.removeItem(PENDING_NAME);
 
-    if (isSignup) {
-      const next = searchParams.get('redirect') || getPostLoginPath(user);
+    const redirect = searchParams.get('redirect');
+    const dest = getPostLoginPath(user);
+    const next = redirect && redirect !== '/' ? redirect : dest;
+
+    // Signup + restaurant owners get a chance to set password after OTP
+    const offerPassword =
+      isSignup ||
+      user?.role === 'restaurant_owner' ||
+      user?.role === 'admin' ||
+      user?.role === 'super_admin';
+
+    if (offerPassword) {
       navigate(`/set-password?next=${encodeURIComponent(next)}`);
       return;
     }
 
     sessionStorage.removeItem(IS_SIGNUP);
-    navigate(searchParams.get('redirect') || getPostLoginPath(user));
+    navigate(next);
   }
 
   const error = localError || authError;
@@ -345,7 +362,11 @@ export function SetPasswordPage() {
       <main className="auth-container">
         <Logo />
         <h1>Set your password</h1>
-        <p className="auth-subtitle">You can use this password to log in next time</p>
+        <p className="auth-subtitle">
+          {user?.role === 'restaurant_owner'
+            ? 'Set a password so you can open the owner panel without OTP next time'
+            : 'You can use this password to log in next time'}
+        </p>
 
         <label className="form-label" htmlFor="new-password">Password</label>
         <input

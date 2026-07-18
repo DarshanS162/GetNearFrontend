@@ -7,6 +7,7 @@ import {
   normalizePhone,
   slugify,
 } from '../lib/utils';
+import { isCustomerVisible } from '../domain/restaurant';
 
 const CatalogContext = createContext(null);
 
@@ -97,10 +98,15 @@ export function CatalogProvider({ children }) {
     return menuCategories.filter((c) => c.restaurantId === businessId);
   }
 
+  const liveBusinessIds = useMemo(
+    () => new Set(businesses.filter(isCustomerVisible).map((b) => b.id)),
+    [businesses],
+  );
+
   const trendingDishes = useMemo(
     () =>
       products
-        .filter((p) => p.isAvailable)
+        .filter((p) => p.isAvailable && liveBusinessIds.has(p.businessId))
         .slice(0, 3)
         .map((p) => ({
           id: p.id,
@@ -109,7 +115,7 @@ export function CatalogProvider({ children }) {
           emoji: '🍽️',
           imageUrl: p.imageUrl || '',
         })),
-    [products],
+    [products, liveBusinessIds],
   );
 
   async function ensureOwnerUser({ ownerName, ownerPhone }) {

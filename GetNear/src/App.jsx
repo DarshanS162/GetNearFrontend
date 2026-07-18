@@ -22,12 +22,16 @@ import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminRestaurants from './pages/admin/AdminRestaurants';
 import AdminProducts from './pages/admin/AdminProducts';
+import AdminApplicationsPage from './pages/admin/AdminApplicationsPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 import OwnerLayout from './pages/owner/OwnerLayout';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import OwnerMenuPage from './pages/owner/OwnerMenuPage';
 import OwnerOrdersPage from './pages/owner/OwnerOrdersPage';
+import OwnerSettingsPage from './pages/owner/OwnerSettingsPage';
+
+import PartnerApplyPage from './pages/partner/PartnerApplyPage';
 
 import './pages/admin/AdminLayout.css';
 
@@ -51,12 +55,14 @@ export default function App() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/otp" element={<OtpPage />} />
               <Route path="/set-password" element={<SetPasswordPage />} />
+              <Route path="/partner" element={<PartnerApplyPage />} />
 
               <Route path="/admin/log-in" element={<AdminLoginPage />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
 
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="applications" element={<AdminApplicationsPage />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
                 <Route path="products" element={<AdminProducts />} />
               </Route>
@@ -65,6 +71,7 @@ export default function App() {
                 <Route index element={<OwnerDashboard />} />
                 <Route path="orders" element={<OwnerOrdersPage />} />
                 <Route path="menu" element={<OwnerMenuPage />} />
+                <Route path="settings" element={<OwnerSettingsPage />} />
               </Route>
             </Routes>
           </BrowserRouter>

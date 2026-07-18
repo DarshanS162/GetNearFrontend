@@ -50,25 +50,34 @@ async function claimAndLoadProfile(authUser, phoneHint) {
 
   if (!profile) return null;
 
-  // Reload with role join if claim/create returned plain row
-  if (!profile.roles) {
-    profile = await fetchProfileByAuthId(authUser.id);
-  }
+  // Always reload with role join — RPC rows often omit nested roles
+  const withRole = await fetchProfileByAuthId(authUser.id);
+  if (withRole) profile = withRole;
 
   if (!profile) return null;
 
-  let restaurantId = null;
-  const roleSlug = profile.roles?.slug || profile.role_slug;
+  const roleRelation = profile.roles;
+  let roleSlug =
+    (Array.isArray(roleRelation) ? roleRelation[0]?.slug : roleRelation?.slug) ||
+    profile.role_slug ||
+    null;
 
-  if (roleSlug === 'restaurant_owner') {
-    const { data: owned } = await supabase
-      .from('restaurants')
-      .select('id')
-      .eq('owner_id', profile.id)
-      .is('deleted_at', null)
-      .limit(1)
-      .maybeSingle();
-    restaurantId = owned?.id || null;
+  let restaurantId = null;
+  const { data: owned } = await supabase
+    .from('restaurants')
+    .select('id')
+    .eq('owner_id', profile.id)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (owned?.id) {
+    restaurantId = owned.id;
+    // Safety: owning a restaurant means owner UI, even if role join failed
+    if (!roleSlug || roleSlug === 'customer') {
+      roleSlug = 'restaurant_owner';
+    }
   }
 
   return {

@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useCatalog } from '../../context/CatalogContext';
+import { useAuth } from '../../context/AuthContext';
 import { SearchBar, QuantityControl, StickyCartBar } from '../../components/ui/Shared';
 import { IconBack, IconStar, IconClock, IconBike } from '../../components/ui/Icons';
+import { isCustomerVisible } from '../../domain/restaurant';
 import './BusinessPage.css';
 
 export default function BusinessPage() {
   const { id } = useParams();
   const { getBusiness, getBusinessProducts, menuCategories, loading } = useCatalog();
+  const { isAdmin, user } = useAuth();
   const business = getBusiness(id);
   const businessCategories = menuCategories.filter((c) => c.restaurantId === id);
   const [activeCategory, setActiveCategory] = useState('');
@@ -19,8 +22,18 @@ export default function BusinessPage() {
     return <div className="page-container" style={{ paddingTop: 48 }}>Loading menu…</div>;
   }
 
-  if (!business) {
-    return <div className="page-container" style={{ paddingTop: 48 }}>Business not found</div>;
+  const canPreview =
+    isAdmin || (user?.restaurantId && user.restaurantId === id);
+
+  if (!business || (!isCustomerVisible(business) && !canPreview)) {
+    return (
+      <div className="page-container" style={{ paddingTop: 48 }}>
+        <p>This store is not available yet.</p>
+        <Link to="/" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+          Back to home
+        </Link>
+      </div>
+    );
   }
 
   const selectedCategory = activeCategory || businessCategories[0]?.id;
