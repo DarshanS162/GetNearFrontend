@@ -27,10 +27,12 @@ export class PlaceOrder {
    * @param {number} command.subtotal
    * @param {number} command.discountAmount
    * @param {number} command.deliveryCharge
+   * @param {number} command.deliveryDiscount
    * @param {number} command.taxAmount
    * @param {number} command.grandTotal
    * @param {string} [command.customerNotes]
    * @param {'cod'} [command.paymentMethod]
+   * @param {string} [command.couponCode]
    */
   async execute(command) {
     const {
@@ -41,10 +43,12 @@ export class PlaceOrder {
       subtotal,
       discountAmount = 0,
       deliveryCharge = 0,
+      deliveryDiscount = 0,
       taxAmount = 0,
       grandTotal,
       customerNotes = '',
       paymentMethod = 'cod',
+      couponCode = '',
     } = command;
 
     if (!customerId) throw new Error('Login required to place order');
@@ -91,10 +95,13 @@ export class PlaceOrder {
         customer_id: linkedCustomerId,
         address_id: addressId,
         subtotal: Number(subtotal),
-        discount_amount: Number(discountAmount),
-        delivery_charge: Number(deliveryCharge),
+        // Coupon redemption is revalidated and applied by the database after
+        // item snapshots exist. Start from the pre-coupon financial values.
+        discount_amount: 0,
+        delivery_charge: Number(deliveryCharge) + Number(deliveryDiscount),
         tax_amount: Number(taxAmount),
-        grand_total: Number(grandTotal),
+        grand_total:
+          Number(grandTotal) + Number(discountAmount) + Number(deliveryDiscount),
         payment_status: 'pending',
         order_status: 'placed',
         payment_method: 'cod',
@@ -113,6 +120,7 @@ export class PlaceOrder {
         orderRow,
         items: lineItems,
         paymentRow,
+        couponCode,
       });
     } catch (err) {
       throw mapRlsError(err);

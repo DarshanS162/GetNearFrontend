@@ -17,7 +17,7 @@ export class SupabaseOrderRepository {
     this.client = client;
   }
 
-  async createWithItems({ orderRow, items, paymentRow }) {
+  async createWithItems({ orderRow, items, paymentRow, couponCode = '' }) {
     const { data: order, error: orderError } = await this.client
       .from('orders')
       .insert(orderRow)
@@ -41,8 +41,22 @@ export class SupabaseOrderRepository {
       .insert(itemRows);
 
     if (itemsError) {
-      await this.client.from('orders').delete().eq('id', order.id);
+      await this.client.rpc('rollback_placed_order', { p_order_id: order.id });
       throw itemsError;
+    }
+
+    if (couponCode) {
+      const { error: couponError } = await this.client.rpc(
+        'redeem_coupon_for_order',
+        {
+          p_order_id: order.id,
+          p_code: couponCode,
+        },
+      );
+      if (couponError) {
+        await this.client.rpc('rollback_placed_order', { p_order_id: order.id });
+        throw couponError;
+      }
     }
 
     if (paymentRow) {

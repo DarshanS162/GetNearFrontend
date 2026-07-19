@@ -19,8 +19,10 @@ function CheckoutPageInner() {
     subtotal,
     discount,
     deliveryFee,
+    deliveryDiscount,
     taxes,
     total,
+    coupon,
     clearCart,
   } = useCart();
   const { addresses, loading: addressesLoading, defaultAddress } = useAddresses();
@@ -66,8 +68,10 @@ function CheckoutPageInner() {
         subtotal,
         discountAmount: discount,
         deliveryCharge: deliveryFee,
+        deliveryDiscount,
         taxAmount: taxes,
         grandTotal: total,
+        couponCode: coupon?.code || '',
         paymentMethod: 'cod',
       });
 
@@ -202,6 +206,12 @@ function CheckoutPageInner() {
             <div className="price-row">
               <span>Discount</span>
               <span>-₹{discount}</span>
+            </div>
+          )}
+          {deliveryDiscount > 0 && (
+            <div className="price-row">
+              <span>Delivery discount</span>
+              <span>-₹{deliveryDiscount}</span>
             </div>
           )}
           <div className="price-row">

@@ -1,15 +1,27 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { IconBack, IconChevron, IconLocation } from '../../components/ui/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { formatAddressLine } from '../../domain/address';
 import { useAddresses } from '../../presentation/hooks/useAddresses';
+import { referralUseCases } from '../../application/container';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, logout, loading, isAdmin, isRestaurantOwner } = useAuth();
   const { defaultAddress } = useAddresses();
   const navigate = useNavigate();
+  const [referral, setReferral] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    referralUseCases.manage
+      .getMyProfile(user.id)
+      .then(setReferral)
+      .catch((err) => console.warn('Referral profile:', err.message));
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -98,6 +110,30 @@ export default function ProfilePage() {
               <strong style={{ textTransform: 'capitalize' }}>{defaultAddress.label}</strong>
               <p>{formatAddressLine(defaultAddress)}</p>
             </div>
+          </div>
+        )}
+
+        {referral?.referralCode && (
+          <div className="profile-address card">
+            <span style={{ fontSize: 20 }}>🎁</span>
+            <div style={{ flex: 1 }}>
+              <strong>Share &amp; Earn</strong>
+              <p>
+                Your code: <strong>{referral.referralCode}</strong> ·{' '}
+                {referral.referrals.length} friends referred
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={async () => {
+                await navigator.clipboard.writeText(referral.referralCode);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </button>
           </div>
         )}
 

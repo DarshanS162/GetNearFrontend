@@ -2,10 +2,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '../../components/ui/Logo';
 import { useAuth } from '../../context/AuthContext';
+import { referralUseCases } from '../../application/container';
 import {
   IS_SIGNUP,
   PENDING_NAME,
   PENDING_PHONE,
+  PENDING_REFERRAL,
 } from '../../lib/authKeys';
 import './AuthPages.css';
 
@@ -135,6 +137,7 @@ export function SignupPage() {
   const { sendOtp, authError, setAuthError } = useAuth();
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function handleSendOtp() {
@@ -147,6 +150,11 @@ export function SignupPage() {
     sessionStorage.setItem(PENDING_PHONE, phone.trim());
     sessionStorage.setItem(IS_SIGNUP, '1');
     if (name.trim()) sessionStorage.setItem(PENDING_NAME, name.trim());
+    if (referralCode.trim()) {
+      sessionStorage.setItem(PENDING_REFERRAL, referralCode.trim().toUpperCase());
+    } else {
+      sessionStorage.removeItem(PENDING_REFERRAL);
+    }
     const redirect = searchParams.get('redirect');
     navigate(redirect ? `/otp?redirect=${encodeURIComponent(redirect)}` : '/otp');
   }
@@ -180,6 +188,19 @@ export function SignupPage() {
             onChange={(e) => setPhone(e.target.value)}
           />
         </div>
+
+        <label className="form-label" htmlFor="referral-code">
+          Referral code <span style={{ fontWeight: 400 }}>(optional)</span>
+        </label>
+        <input
+          id="referral-code"
+          type="text"
+          className="form-input"
+          placeholder="e.g. GN12AB34CD"
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+          autoComplete="off"
+        />
 
         {authError && <p className="auth-error">{authError}</p>}
 
@@ -240,8 +261,17 @@ export function OtpPage() {
     }
 
     const user = result.user;
+    const referralCode = sessionStorage.getItem(PENDING_REFERRAL);
+    if (isSignup && referralCode) {
+      try {
+        await referralUseCases.manage.claim(referralCode);
+      } catch (err) {
+        console.warn('Referral code was not applied:', err.message);
+      }
+    }
     sessionStorage.removeItem(PENDING_PHONE);
     sessionStorage.removeItem(PENDING_NAME);
+    sessionStorage.removeItem(PENDING_REFERRAL);
 
     const redirect = searchParams.get('redirect');
     const dest = getPostLoginPath(user);

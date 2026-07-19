@@ -9,6 +9,8 @@ const navItems = [
   { to: '/admin/applications', label: 'Applications' },
   { to: '/admin/restaurants', label: 'Restaurants' },
   { to: '/admin/products', label: 'All menu items' },
+  { to: '/admin/coupons', label: 'Coupons' },
+  { to: '/admin/referrals', label: 'Referrals' },
 ];
 
 export default function AdminLayout() {

@@ -7,6 +7,8 @@ import { SupabaseAddressRepository } from '../infrastructure/supabase/SupabaseAd
 import { SupabaseBranchRepository } from '../infrastructure/supabase/SupabaseBranchRepository';
 import { SupabaseOrderRepository } from '../infrastructure/supabase/SupabaseOrderRepository';
 import { SupabasePartnerRepository } from '../infrastructure/supabase/SupabasePartnerRepository';
+import { SupabaseCouponRepository } from '../infrastructure/supabase/SupabaseCouponRepository';
+import { SupabaseReferralRepository } from '../infrastructure/supabase/SupabaseReferralRepository';
 import { ListAddresses } from './use-cases/ListAddresses';
 import { CreateAddress } from './use-cases/CreateAddress';
 import { UpdateAddress } from './use-cases/UpdateAddress';
@@ -23,17 +25,23 @@ import { ApprovePartnerApplication } from './use-cases/ApprovePartnerApplication
 import { RejectPartnerApplication } from './use-cases/RejectPartnerApplication';
 import { UpdateOwnerStoreSettings } from './use-cases/UpdateOwnerStoreSettings';
 import { SetStoreOpen } from './use-cases/SetStoreOpen';
+import { ManageCoupons, ValidateCoupon } from './use-cases/ManageCoupons';
+import { ManageReferrals } from './use-cases/ManageReferrals';
 
 const addressRepository = new SupabaseAddressRepository(supabase);
 const branchRepository = new SupabaseBranchRepository(supabase);
 const orderRepository = new SupabaseOrderRepository(supabase);
 const partnerRepository = new SupabasePartnerRepository(supabase);
+const couponRepository = new SupabaseCouponRepository(supabase);
+const referralRepository = new SupabaseReferralRepository(supabase);
 
 const deps = {
   addressRepository,
   branchRepository,
   orderRepository,
   partnerRepository,
+  couponRepository,
+  referralRepository,
   supabaseClient: supabase,
 };
 
@@ -60,4 +68,13 @@ export const partnerUseCases = {
   reject: new RejectPartnerApplication(deps),
   updateStore: new UpdateOwnerStoreSettings(deps),
   setOpen: new SetStoreOpen(deps),
+};
+
+export const couponUseCases = {
+  validate: new ValidateCoupon(deps),
+  manage: new ManageCoupons(deps),
+};
+
+export const referralUseCases = {
+  manage: new ManageReferrals(deps),
 };

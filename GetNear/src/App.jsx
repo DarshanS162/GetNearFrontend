@@ -24,12 +24,15 @@ import AdminRestaurants from './pages/admin/AdminRestaurants';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminApplicationsPage from './pages/admin/AdminApplicationsPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminCouponsPage from './pages/admin/AdminCouponsPage';
+import AdminReferralsPage from './pages/admin/AdminReferralsPage';
 
 import OwnerLayout from './pages/owner/OwnerLayout';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import OwnerMenuPage from './pages/owner/OwnerMenuPage';
 import OwnerOrdersPage from './pages/owner/OwnerOrdersPage';
 import OwnerSettingsPage from './pages/owner/OwnerSettingsPage';
+import OwnerCouponsPage from './pages/owner/OwnerCouponsPage';
 
 import PartnerApplyPage from './pages/partner/PartnerApplyPage';
 
@@ -65,6 +68,8 @@ export default function App() {
                 <Route path="applications" element={<AdminApplicationsPage />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
                 <Route path="products" element={<AdminProducts />} />
+                <Route path="coupons" element={<AdminCouponsPage />} />
+                <Route path="referrals" element={<AdminReferralsPage />} />
               </Route>
 
               <Route path="/owner" element={<OwnerLayout />}>
@@ -72,6 +77,7 @@ export default function App() {
                 <Route path="orders" element={<OwnerOrdersPage />} />
                 <Route path="menu" element={<OwnerMenuPage />} />
                 <Route path="settings" element={<OwnerSettingsPage />} />
+                <Route path="coupons" element={<OwnerCouponsPage />} />
               </Route>
             </Routes>
           </BrowserRouter>

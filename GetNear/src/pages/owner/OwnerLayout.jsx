@@ -8,6 +8,7 @@ const navItems = [
   { to: '/owner', label: 'Dashboard', end: true },
   { to: '/owner/orders', label: 'Orders' },
   { to: '/owner/menu', label: 'My menu' },
+  { to: '/owner/coupons', label: 'My coupons' },
   { to: '/owner/settings', label: 'Store settings' },
 ];
 

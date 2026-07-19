@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import { deliveryFee, taxRate } from '../data/mockData';
 import { useCatalog } from './CatalogContext';
+import { couponUseCases } from '../application/container';
 
 const CartContext = createContext(null);
 
@@ -9,6 +10,8 @@ export function CartProvider({ children }) {
   const [businessId, setBusinessId] = useState('');
   const [items, setItems] = useState([]);
   const [coupon, setCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const business = getBusiness(businessId);
 
@@ -31,12 +34,20 @@ export function CartProvider({ children }) {
     0,
   );
 
-  const discount = coupon ? Math.round(subtotal * 0.1) : 0;
+  const discount = Number(coupon?.discountAmount) || 0;
+  const deliveryDiscount = Number(coupon?.deliveryDiscount) || 0;
+  const payableDeliveryFee = Math.max(deliveryFee - deliveryDiscount, 0);
   const taxable = subtotal - discount;
   const taxes = Math.round(taxable * taxRate);
-  const total = taxable + deliveryFee + taxes;
+  const total = Math.max(taxable + payableDeliveryFee + taxes, 0);
+
+  function resetCoupon() {
+    setCoupon(null);
+    setCouponError('');
+  }
 
   function addItem(productId) {
+    resetCoupon();
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (existing) {
@@ -53,6 +64,7 @@ export function CartProvider({ children }) {
   }
 
   function removeItem(productId) {
+    resetCoupon();
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (!existing) return prev;
@@ -75,6 +87,33 @@ export function CartProvider({ children }) {
     setItems([]);
     setBusinessId('');
     setCoupon(null);
+    setCouponError('');
+  }
+
+  async function applyCoupon(code) {
+    setApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const quote = await couponUseCases.validate.execute({
+        code,
+        restaurantId: businessId,
+        subtotal,
+        deliveryCharge: deliveryFee,
+        items: cartItems.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.price,
+        })),
+      });
+      setCoupon(quote);
+      return quote;
+    } catch (err) {
+      setCoupon(null);
+      setCouponError(err.message || 'Coupon is not valid');
+      throw err;
+    } finally {
+      setApplyingCoupon(false);
+    }
   }
 
   const value = {
@@ -84,11 +123,16 @@ export function CartProvider({ children }) {
     itemCount,
     subtotal,
     discount,
-    deliveryFee,
+    deliveryFee: payableDeliveryFee,
+    originalDeliveryFee: deliveryFee,
+    deliveryDiscount,
     taxes,
     total,
     coupon,
-    setCoupon,
+    couponError,
+    applyingCoupon,
+    applyCoupon,
+    removeCoupon: resetCoupon,
     addItem,
     removeItem,
     getQuantity,

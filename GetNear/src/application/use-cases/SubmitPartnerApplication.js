@@ -1,4 +1,5 @@
 import { normalizePhone } from '../../lib/utils';
+import { notifyAdminsOfPartnerApplication } from '../../infrastructure/email/notifyAdminsOfPartnerApplication';
 
 export class SubmitPartnerApplication {
   constructor({ partnerRepository }) {
@@ -14,7 +15,7 @@ export class SubmitPartnerApplication {
     if (ownerName.length < 2) throw new Error('Owner name is required');
     if (phone.length !== 10) throw new Error('Valid 10-digit phone is required');
 
-    return this.partnerRepository.submitApplication({
+    const application = {
       restaurantName,
       ownerName,
       phone,
@@ -24,6 +25,13 @@ export class SubmitPartnerApplication {
       gstNumber: String(input.gstNumber || '').trim(),
       fssaiNumber: String(input.fssaiNumber || '').trim(),
       contactEmail: String(input.contactEmail || '').trim(),
-    });
+    };
+
+    const restaurant = await this.partnerRepository.submitApplication(application);
+
+    // Fire-and-forget — do not block / fail registration if mail fails
+    void notifyAdminsOfPartnerApplication(application);
+
+    return restaurant;
   }
 }

@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
-import { IconBack, IconChevron, IconTicket } from '../../components/ui/Icons';
+import { IconBack, IconTicket } from '../../components/ui/Icons';
 import { QuantityControl } from '../../components/ui/Shared';
 import './CartPage.css';
 
 export default function CartPage() {
+  const [couponCode, setCouponCode] = useState('');
   const {
     business,
     items,
@@ -13,11 +15,23 @@ export default function CartPage() {
     deliveryFee,
     taxes,
     total,
-    setCoupon,
     coupon,
+    couponError,
+    applyingCoupon,
+    applyCoupon,
+    removeCoupon,
     addItem,
     removeItem,
   } = useCart();
+
+  async function handleApplyCoupon(event) {
+    event.preventDefault();
+    try {
+      await applyCoupon(couponCode);
+    } catch {
+      // The cart context exposes the customer-facing validation message.
+    }
+  }
 
   return (
     <div className="app-shell animate-in">
@@ -47,15 +61,41 @@ export default function CartPage() {
           ))}
         </div>
 
-        <button
-          type="button"
-          className="coupon-row card"
-          onClick={() => setCoupon(coupon ? null : 'SAVE10')}
-        >
-          <IconTicket size={20} />
-          <span>{coupon ? 'Coupon applied: SAVE10' : 'Apply coupon code'}</span>
-          <IconChevron />
-        </button>
+        <div className="coupon-card card">
+          <div className="coupon-card-title">
+            <IconTicket size={20} />
+            <span>Apply coupon</span>
+          </div>
+          {coupon ? (
+            <div className="coupon-applied">
+              <div>
+                <strong>{coupon.code}</strong>
+                <span>{coupon.message || 'Coupon applied'}</span>
+              </div>
+              <button type="button" className="btn-ghost btn-sm" onClick={removeCoupon}>
+                Remove
+              </button>
+            </div>
+          ) : (
+            <form className="coupon-form" onSubmit={handleApplyCoupon}>
+              <input
+                className="form-input"
+                value={couponCode}
+                onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                placeholder="Enter coupon code"
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={applyingCoupon || !couponCode.trim()}
+              >
+                {applyingCoupon ? 'Checking…' : 'Apply'}
+              </button>
+            </form>
+          )}
+          {couponError && <p className="coupon-error">{couponError}</p>}
+        </div>
 
         <div className="bill-card card">
           <div className="price-row">
@@ -66,6 +106,12 @@ export default function CartPage() {
             <div className="price-row">
               <span>Discount</span>
               <span className="discount-amount">−₹{discount}</span>
+            </div>
+          )}
+          {coupon?.deliveryDiscount > 0 && (
+            <div className="price-row">
+              <span>Delivery discount</span>
+              <span className="discount-amount">−₹{coupon.deliveryDiscount}</span>
             </div>
           )}
           <div className="price-row">
