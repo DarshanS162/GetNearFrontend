@@ -83,6 +83,19 @@
 
 .menu-chips {
   margin-bottom: var(--space-5);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-bg);
+  padding: var(--space-2) 0;
+  margin-left: -2px;
+  margin-right: -2px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.menu-chips .chip.chip-active {
+  color: #ffffff;
 }
 
 .menu-list {

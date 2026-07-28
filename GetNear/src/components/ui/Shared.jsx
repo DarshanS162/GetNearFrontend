@@ -1,4 +1,5 @@
-import { IconSearch } from './Icons';
+import { Link } from 'react-router-dom';
+import { IconSearch, IconCart, IconChevron } from './Icons';
 
 export function SearchBar({ placeholder = 'Search...', value, onChange }) {
   return (
@@ -37,17 +38,27 @@ export function QuantityControl({ quantity, onAdd, onRemove }) {
   );
 }
 
-import { Link } from 'react-router-dom';
-
 export function StickyCartBar({ itemCount, total, to = '/cart' }) {
   if (itemCount === 0) return null;
 
   return (
-    <Link to={to} className="sticky-cart-bar">
-      <span>{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
-      <span>
-        View cart · <span className="highlight">₹{total}</span>
-      </span>
+    <Link to={to} className="sticky-cart-bar" aria-label={`View cart, ${itemCount} items, ₹${total}`}>
+      <div className="sticky-cart-bar-left">
+        <div className="sticky-cart-icon-wrap">
+          <IconCart size={20} />
+          <span className="sticky-cart-badge">{itemCount}</span>
+        </div>
+        <div className="sticky-cart-meta">
+          <strong>View cart</strong>
+          <span>
+            {itemCount} item{itemCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+      <div className="sticky-cart-bar-right">
+        <span className="highlight">₹{total}</span>
+        <IconChevron size={18} />
+      </div>
     </Link>
   );
 }

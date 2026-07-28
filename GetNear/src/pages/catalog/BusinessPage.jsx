@@ -48,8 +48,8 @@ export default function BusinessPage() {
   }
 
   return (
-    <div className="app-shell animate-in business-page">
-      <main className="page-container">
+    <div className="app-shell business-page">
+      <main className="page-container animate-in">
         <div className="business-header-nav">
           <Link to="/" className="back-btn" aria-label="Go back">
             <IconBack />
@@ -147,8 +147,9 @@ export default function BusinessPage() {
         </div>
 
         <div className="bottom-spacer" />
-        <StickyCartBar itemCount={itemCount} total={total} />
       </main>
+
+      <StickyCartBar itemCount={itemCount} total={total} />
     </div>
   );
 }

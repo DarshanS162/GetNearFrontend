@@ -113,3 +113,13 @@ export function IconMore({ size = 18 }) {
     </svg>
   );
 }
+
+export function IconCart({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="20" r="1.5" />
+      <circle cx="18" cy="20" r="1.5" />
+      <path d="M3 4h2l1.4 9.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.5L21 7H7" />
+    </svg>
+  );
+}
