@@ -1,12 +1,24 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { IconBack, IconTicket } from '../../components/ui/Icons';
 import { QuantityControl } from '../../components/ui/Shared';
+import {
+  CartDeliverySection,
+  readSelectedAddressId,
+  writeSelectedAddressId,
+} from '../../components/address';
 import './CartPage.css';
+import '../../components/address/address-components.css';
+import '../../pages/account/AddressesPage.css';
 
 export default function CartPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [couponCode, setCouponCode] = useState('');
+  const [selectedAddressId, setSelectedAddressId] = useState(() => readSelectedAddressId());
+  const [addOpen, setAddOpen] = useState(false);
   const {
     business,
     items,
@@ -24,6 +36,11 @@ export default function CartPage() {
     removeItem,
   } = useCart();
 
+  const handleSelectAddress = useCallback((id) => {
+    setSelectedAddressId(id || '');
+    writeSelectedAddressId(id || '');
+  }, []);
+
   async function handleApplyCoupon(event) {
     event.preventDefault();
     try {
@@ -31,6 +48,15 @@ export default function CartPage() {
     } catch {
       // The cart context exposes the customer-facing validation message.
     }
+  }
+
+  function handleCheckout() {
+    if (user && !selectedAddressId) {
+      setAddOpen(true);
+      return;
+    }
+    writeSelectedAddressId(selectedAddressId);
+    navigate('/checkout', { state: { addressId: selectedAddressId || undefined } });
   }
 
   return (
@@ -44,6 +70,13 @@ export default function CartPage() {
         </div>
 
         <p className="cart-restaurant">{business?.name?.toUpperCase()}</p>
+
+        <CartDeliverySection
+          selectedAddressId={selectedAddressId}
+          onSelectAddressId={handleSelectAddress}
+          addOpen={addOpen}
+          onAddOpenChange={setAddOpen}
+        />
 
         <div className="cart-items card">
           {items.map((item) => (
@@ -128,9 +161,15 @@ export default function CartPage() {
           </div>
         </div>
 
-        <Link to="/checkout" className="btn btn-primary btn-full checkout-btn">
-          Proceed to checkout
-        </Link>
+        <button
+          type="button"
+          className="btn btn-primary btn-full checkout-btn"
+          onClick={handleCheckout}
+        >
+          {user && !selectedAddressId
+            ? 'Add delivery location to continue'
+            : 'Proceed to checkout'}
+        </button>
       </main>
     </div>
   );

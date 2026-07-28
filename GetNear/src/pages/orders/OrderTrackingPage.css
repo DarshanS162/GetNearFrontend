@@ -37,6 +37,29 @@
   color: var(--color-primary);
 }
 
+.status-banner--success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.status-banner--success strong {
+  color: var(--color-success);
+}
+
+.status-banner--success span {
+  color: var(--color-success);
+}
+
+.status-banner--cancelled {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.status-banner--cancelled strong,
+.status-banner--cancelled span {
+  color: var(--color-error);
+}
+
 .tracking-page .timeline {
   padding: var(--space-5) var(--space-3);
   margin-bottom: var(--space-4);
@@ -44,6 +67,32 @@
 
 .tracking-page .timeline::before {
   top: calc(var(--space-5) + 18px);
+}
+
+.tracking-page .timeline-label {
+  max-width: 64px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+/* Delivered: green timeline */
+.tracking-page--delivered .timeline--success .timeline-step.done .timeline-dot,
+.tracking-page--delivered .timeline--success .timeline-step.active .timeline-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+  animation: none;
+}
+
+.tracking-page--delivered .timeline--success .timeline-step.done .timeline-label,
+.tracking-page--delivered .timeline--success .timeline-step.active .timeline-label {
+  color: var(--color-success);
+  animation: none;
+}
+
+.tracking-page--delivered .tracking-total span:last-child {
+  color: var(--color-success);
 }
 
 .partner-card {

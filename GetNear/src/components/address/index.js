@@ -9,3 +9,9 @@ export {
   EditAddressModal,
   EMPTY_ADDRESS_FORM,
 } from './AddressModal';
+export {
+  CartDeliverySection,
+  readSelectedAddressId,
+  writeSelectedAddressId,
+  SELECTED_ADDRESS_KEY,
+} from './CartDeliverySection';

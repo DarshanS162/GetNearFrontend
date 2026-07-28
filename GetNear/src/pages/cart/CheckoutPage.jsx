@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { RequireAuth } from '../../components/auth/RequireAuth';
@@ -7,11 +7,16 @@ import { IconBack, IconLocation, IconUser, IconPhone } from '../../components/ui
 import { formatAddressLine } from '../../domain/address';
 import { useAddresses } from '../../presentation/hooks/useAddresses';
 import { orderUseCases } from '../../application/container';
+import {
+  readSelectedAddressId,
+  writeSelectedAddressId,
+} from '../../components/address';
 import '../../components/address/address-components.css';
 import './CheckoutPage.css';
 
 function CheckoutPageInner() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const {
     businessId,
@@ -28,16 +33,23 @@ function CheckoutPageInner() {
   } = useCart();
   const { addresses, loading: addressesLoading, defaultAddress } = useAddresses();
 
-  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [selectedAddressId, setSelectedAddressId] = useState(
+    () => location.state?.addressId || readSelectedAddressId() || '',
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (defaultAddress?.id) {
-      setSelectedAddressId((prev) => prev || defaultAddress.id);
+    if (selectedAddressId) {
+      writeSelectedAddressId(selectedAddressId);
+      return;
     }
-  }, [defaultAddress?.id]);
+    if (defaultAddress?.id) {
+      setSelectedAddressId(defaultAddress.id);
+      writeSelectedAddressId(defaultAddress.id);
+    }
+  }, [defaultAddress?.id, selectedAddressId]);
 
   const selectedAddress =
     addresses.find((a) => a.id === selectedAddressId) || defaultAddress;
@@ -157,7 +169,7 @@ function CheckoutPageInner() {
                 Change
               </button>
             ) : (
-              <Link to="/addresses" className="btn-ghost btn-sm">
+              <Link to="/cart" className="btn-ghost btn-sm">
                 Add
               </Link>
             )}
@@ -174,6 +186,7 @@ function CheckoutPageInner() {
                   }`}
                   onClick={() => {
                     setSelectedAddressId(address.id);
+                    writeSelectedAddressId(address.id);
                     setPickerOpen(false);
                   }}
                 >
@@ -181,8 +194,8 @@ function CheckoutPageInner() {
                   <span>{formatAddressLine(address)}</span>
                 </button>
               ))}
-              <Link to="/addresses" className="btn-ghost btn-sm" style={{ marginTop: 8 }}>
-                Manage addresses
+              <Link to="/cart" className="btn-ghost btn-sm" style={{ marginTop: 8 }}>
+                Change on cart
               </Link>
             </div>
           )}

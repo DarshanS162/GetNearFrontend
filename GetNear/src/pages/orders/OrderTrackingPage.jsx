@@ -88,11 +88,18 @@ function OrderTrackingInner() {
   }
 
   const cancelled = order.orderStatus === ORDER_STATUS.CANCELLED;
+  const delivered = order.orderStatus === ORDER_STATUS.DELIVERED;
   const activeIndex = getTimelineIndex(order.orderStatus);
+  const statusLabel =
+    order.orderStatus === ORDER_STATUS.READY
+      ? ORDER_STATUS_LABELS[ORDER_STATUS.PREPARING]
+      : ORDER_STATUS_LABELS[order.orderStatus] || order.orderStatus;
 
   return (
     <div className="app-shell animate-in">
-      <main className="page-container tracking-page">
+      <main
+        className={`page-container tracking-page${delivered ? ' tracking-page--delivered' : ''}${cancelled ? ' tracking-page--cancelled' : ''}`}
+      >
         <div className="page-header">
           <Link to="/orders" className="back-btn" aria-label="Go back">
             <IconBack />
@@ -100,30 +107,34 @@ function OrderTrackingInner() {
           <h1>Order #{order.orderNumber}</h1>
         </div>
 
-        <div className="status-banner card">
+        <div className={`status-banner card${delivered ? ' status-banner--success' : ''}${cancelled ? ' status-banner--cancelled' : ''}`}>
           <strong>
-            {cancelled
-              ? 'Cancelled'
-              : ORDER_STATUS_LABELS[order.orderStatus] || order.orderStatus}
+            {cancelled ? 'Cancelled' : statusLabel}
           </strong>
           <span>
             {cancelled
               ? order.cancelledReason || 'This order was cancelled'
-              : order.restaurantName || 'Your order is on the way'}
+              : delivered
+                ? 'Enjoy your meal!'
+                : order.restaurantName || 'Your order is on the way'}
           </span>
         </div>
 
         {!cancelled && (
-          <div className="timeline card">
+          <div className={`timeline card${delivered ? ' timeline--success' : ''}`}>
             {ORDER_TIMELINE.map((status, index) => {
               let state = '';
-              if (index < activeIndex) state = 'done';
+              if (delivered || index < activeIndex) state = 'done';
               else if (index === activeIndex) state = 'active';
 
               return (
                 <div key={status} className={`timeline-step ${state}`}>
                   <div className="timeline-dot">
-                    {state === 'done' ? <IconCheck /> : index + 1}
+                    {state === 'done' || (delivered && state === 'active') ? (
+                      <IconCheck />
+                    ) : (
+                      index + 1
+                    )}
                   </div>
                   <span className="timeline-label">
                     {ORDER_STATUS_LABELS[status]}

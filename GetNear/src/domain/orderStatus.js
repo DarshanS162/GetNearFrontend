@@ -20,12 +20,11 @@ export const ORDER_STATUS_LABELS = {
   [ORDER_STATUS.CANCELLED]: 'Cancelled',
 };
 
-/** Customer-facing timeline (excludes cancelled). */
+/** Customer-facing timeline (excludes cancelled + ready — fewer steps, less overwhelm). */
 export const ORDER_TIMELINE = [
   ORDER_STATUS.PLACED,
   ORDER_STATUS.CONFIRMED,
   ORDER_STATUS.PREPARING,
-  ORDER_STATUS.READY,
   ORDER_STATUS.OUT_FOR_DELIVERY,
   ORDER_STATUS.DELIVERED,
 ];
@@ -50,6 +49,11 @@ export function nextOwnerStatuses(from) {
 
 export function getTimelineIndex(status) {
   if (status === ORDER_STATUS.CANCELLED) return -1;
+  // Kitchen "ready" is hidden from customers — keep them on Preparing
+  // until the order moves to out_for_delivery.
+  if (status === ORDER_STATUS.READY) {
+    return ORDER_TIMELINE.indexOf(ORDER_STATUS.PREPARING);
+  }
   const idx = ORDER_TIMELINE.indexOf(status);
   return idx >= 0 ? idx : 0;
 }
