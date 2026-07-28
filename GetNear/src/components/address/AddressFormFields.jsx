@@ -19,6 +19,15 @@ export function AddressFormFields({ form, onChange, showContact = true }) {
         <div className="address-detected">
           <span className="section-label">DETECTED ADDRESS</span>
           <p>{form.formattedAddress}</p>
+          {form.latitude != null && form.longitude != null && (
+            <p className="muted address-coords">
+              Pin: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}
+              {form.accuracyM != null ? ` · GPS ±${form.accuracyM} m` : ''}
+            </p>
+          )}
+          {form.accuracyWarning && (
+            <p className="form-error" style={{ marginBottom: 0 }}>{form.accuracyWarning}</p>
+          )}
         </div>
       )}
 
