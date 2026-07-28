@@ -7,6 +7,10 @@ import { reverseGeocodeAddress } from './geocoding';
 const CACHE_KEY = 'getnear_current_location';
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
+/** Warn / soft-reject when GPS accuracy is worse than this (meters). */
+const POOR_ACCURACY_M = 150;
+const UNUSABLE_ACCURACY_M = 2000;
+
 export const LocationErrorCode = {
   PERMISSION_DENIED: 'PERMISSION_DENIED',
   POSITION_UNAVAILABLE: 'POSITION_UNAVAILABLE',
@@ -14,6 +18,7 @@ export const LocationErrorCode = {
   UNSUPPORTED: 'UNSUPPORTED',
   NETWORK: 'NETWORK',
   GEOCODE: 'GEOCODE',
+  POOR_ACCURACY: 'POOR_ACCURACY',
   UNKNOWN: 'UNKNOWN',
 };
 
@@ -49,11 +54,7 @@ export function mapGeolocationError(err) {
   };
 }
 
-/**
- * High-accuracy GPS fix.
- * @returns {Promise<{ lat: number, lng: number, accuracy?: number }>}
- */
-export function getCurrentCoordinates(options = {}) {
+function readPositionOnce(options) {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       reject(Object.assign(new Error('Geolocation is not supported'), { code: 0 }));
@@ -69,14 +70,48 @@ export function getCurrentCoordinates(options = {}) {
         });
       },
       (err) => reject(err),
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-        ...options,
-      }
+      options
     );
   });
+}
+
+/**
+ * High-accuracy GPS fix. For address capture, takes up to two samples
+ * and keeps the more accurate one (helps indoors / Wi‑Fi drift).
+ * @returns {Promise<{ lat: number, lng: number, accuracy?: number }>}
+ */
+export async function getCurrentCoordinates(options = {}) {
+  const {
+    samples = 1,
+    ...geoOptions
+  } = options;
+
+  const base = {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0,
+    ...geoOptions,
+  };
+
+  const first = await readPositionOnce(base);
+  if (samples < 2) return first;
+
+  try {
+    const second = await readPositionOnce({
+      ...base,
+      timeout: Math.min(base.timeout || 15000, 10000),
+    });
+    if (
+      second.accuracy != null &&
+      (first.accuracy == null || second.accuracy < first.accuracy)
+    ) {
+      return second;
+    }
+  } catch {
+    // keep first reading
+  }
+
+  return first;
 }
 
 /** @deprecated Use reverseGeocodeAddress from lib/geocoding.js */
@@ -156,6 +191,7 @@ export async function getCurrentLocationLabel({ useCache = true } = {}) {
     enableHighAccuracy: false,
     timeout: 10000,
     maximumAge: 5 * 60 * 1000,
+    samples: 1,
   });
   const data = await reverseGeocodeAddress(lat, lng);
   const label =
@@ -169,13 +205,43 @@ export async function getCurrentLocationLabel({ useCache = true } = {}) {
 
 /**
  * Full “use current location” flow for address forms.
+ * Uses a dual GPS sample and keeps the pin on GPS coords (not geocoder centroid).
  */
 export async function detectCurrentAddress() {
   try {
-    const { lat, lng } = await getCurrentCoordinates();
-    const address = await reverseGeocodeAddress(lat, lng);
-    return address;
+    const { lat, lng, accuracy } = await getCurrentCoordinates({
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0,
+      samples: 2,
+    });
+
+    if (accuracy != null && accuracy > UNUSABLE_ACCURACY_M) {
+      throw Object.assign(
+        new Error(
+          'GPS accuracy is too low right now. Move near a window or pick the pin on the map.'
+        ),
+        { code: LocationErrorCode.POOR_ACCURACY }
+      );
+    }
+
+    const address = await reverseGeocodeAddress(lat, lng, { useCache: false });
+    const enriched = {
+      ...address,
+      latitude: lat,
+      longitude: lng,
+      accuracyM: accuracy != null ? Math.round(accuracy) : null,
+    };
+
+    if (accuracy != null && accuracy > POOR_ACCURACY_M) {
+      enriched.accuracyWarning =
+        `GPS accuracy is about ${Math.round(accuracy)} m. Confirm the pin on the map if this looks off.`;
+    }
+
+    return enriched;
   } catch (err) {
+    if (err?.code === LocationErrorCode.POOR_ACCURACY) throw err;
+
     const mapped = mapGeolocationError(err);
     if (
       mapped.code === LocationErrorCode.UNKNOWN &&

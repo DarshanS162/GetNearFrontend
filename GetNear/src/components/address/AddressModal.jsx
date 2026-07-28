@@ -31,8 +31,11 @@ function applyGeocodeToForm(prev, geo) {
     pincode: geo.pincode || prev.pincode || '',
     country: geo.country || prev.country || 'India',
     formattedAddress: geo.formattedAddress || '',
+    // Always keep the GPS / map pin — never the geocoder area centroid
     latitude: geo.latitude,
     longitude: geo.longitude,
+    accuracyM: geo.accuracyM ?? null,
+    accuracyWarning: geo.accuracyWarning || '',
   };
 }
 
@@ -66,6 +69,9 @@ export function AddressModal({
     try {
       const geo = await detectCurrentAddress();
       setForm((prev) => applyGeocodeToForm(prev, geo));
+      if (geo.accuracyWarning) {
+        setFormError(geo.accuracyWarning);
+      }
     } catch (err) {
       setFormError(err.message || 'Could not get current location');
     } finally {
