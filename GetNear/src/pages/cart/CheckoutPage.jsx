@@ -7,6 +7,7 @@ import { IconBack, IconLocation, IconUser, IconPhone } from '../../components/ui
 import { formatAddressLine } from '../../domain/address';
 import { useAddresses } from '../../presentation/hooks/useAddresses';
 import { orderUseCases } from '../../application/container';
+import '../../components/address/address-components.css';
 import './CheckoutPage.css';
 
 function CheckoutPageInner() {
@@ -41,6 +42,9 @@ function CheckoutPageInner() {
   const selectedAddress =
     addresses.find((a) => a.id === selectedAddressId) || defaultAddress;
 
+  const selectedHasPin =
+    selectedAddress?.latitude != null && selectedAddress?.longitude != null;
+
   async function handlePlaceOrder() {
     setError('');
     if (!itemCount || !businessId) {
@@ -51,9 +55,14 @@ function CheckoutPageInner() {
       setError('Please add a delivery address');
       return;
     }
+    if (!selectedHasPin) {
+      setError('Selected address needs a map pin. Edit it under Saved addresses.');
+      return;
+    }
 
     setPlacing(true);
     try {
+      // Backend receives addressId only — ownership, radius, and snapshot are server-side.
       const order = await orderUseCases.place.execute({
         customerId: user.id,
         restaurantId: businessId,
@@ -128,6 +137,11 @@ function CheckoutPageInner() {
                     {selectedAddress.label}
                   </strong>
                   <p>{formatAddressLine(selectedAddress)}</p>
+                  {!selectedHasPin && (
+                    <p className="form-error" style={{ marginTop: 6 }}>
+                      This address has no map pin. Update it before ordering.
+                    </p>
+                  )}
                 </>
               )}
               {!addressesLoading && !selectedAddress && (
@@ -235,7 +249,7 @@ function CheckoutPageInner() {
           type="button"
           className="btn btn-primary btn-full place-order-btn"
           onClick={handlePlaceOrder}
-          disabled={placing || !selectedAddress}
+          disabled={placing || !selectedAddress || !selectedHasPin}
         >
           {placing ? 'Placing order…' : `Place order · ₹${total}`}
         </button>

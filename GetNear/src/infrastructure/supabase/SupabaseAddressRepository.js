@@ -1,8 +1,9 @@
-import { mapAddress, toAddressRow } from '../../domain/address';
+import { mapAddress, toAddressRpcParams } from '../../domain/address';
 import { mapRlsError, resolveAppUserId } from './resolveAppUserId';
 
 /**
  * Infrastructure adapter — swap for NestJS TypeORM/Prisma repository later.
+ * Address geo is stored as PostGIS geography via SECURITY DEFINER RPCs.
  * @implements {import('../../application/ports/AddressRepositoryPort').AddressRepositoryPort}
  */
 export class SupabaseAddressRepository {
@@ -23,48 +24,32 @@ export class SupabaseAddressRepository {
   }
 
   async listByUserId(userId) {
-    const writableId = await this.resolveUserId(userId);
-    const { data, error } = await this.client
-      .from('addresses')
-      .select('*')
-      .eq('user_id', writableId)
-      .is('deleted_at', null)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
-
+    await this.resolveUserId(userId);
+    const { data, error } = await this.client.rpc('list_customer_addresses');
     if (error) throw mapRlsError(error);
-    return (data || []).map(mapAddress);
+    const rows = Array.isArray(data) ? data : [];
+    return rows.map(mapAddress);
   }
 
   async findById(id) {
-    const { data, error } = await this.client
-      .from('addresses')
-      .select('*')
-      .eq('id', id)
-      .is('deleted_at', null)
-      .maybeSingle();
-
+    const { data, error } = await this.client.rpc('get_customer_address', {
+      p_address_id: id,
+    });
     if (error) throw mapRlsError(error);
     return mapAddress(data);
   }
 
   async create(userId, input) {
     try {
-      const writableId = await this.resolveUserId(userId, {
+      await this.resolveUserId(userId, {
         fullName: input.fullName,
         phone: input.phone,
       });
 
-      if (input.isDefault) {
-        await this.clearDefault(writableId);
-      }
-
-      const { data, error } = await this.client
-        .from('addresses')
-        .insert(toAddressRow(input, writableId))
-        .select('*')
-        .single();
-
+      const { data, error } = await this.client.rpc(
+        'create_customer_address',
+        toAddressRpcParams(input),
+      );
       if (error) throw error;
       return mapAddress(data);
     } catch (err) {
@@ -74,27 +59,15 @@ export class SupabaseAddressRepository {
 
   async update(userId, addressId, input) {
     try {
-      const writableId = await this.resolveUserId(userId, {
+      await this.resolveUserId(userId, {
         fullName: input.fullName,
         phone: input.phone,
       });
 
-      if (input.isDefault) {
-        await this.clearDefault(writableId);
-      }
-
-      const row = toAddressRow(input, writableId);
-      delete row.user_id;
-
-      const { data, error } = await this.client
-        .from('addresses')
-        .update(row)
-        .eq('id', addressId)
-        .eq('user_id', writableId)
-        .is('deleted_at', null)
-        .select('*')
-        .single();
-
+      const { data, error } = await this.client.rpc('update_customer_address', {
+        p_address_id: addressId,
+        ...toAddressRpcParams(input),
+      });
       if (error) throw error;
       return mapAddress(data);
     } catch (err) {
@@ -132,7 +105,10 @@ export class SupabaseAddressRepository {
         .single();
 
       if (error) throw error;
-      return mapAddress(data);
+
+      // Enrich with coords via RPC (select * no longer has lat/lng columns)
+      const enriched = await this.findById(addressId);
+      return enriched || mapAddress(data);
     } catch (err) {
       throw mapRlsError(err);
     }
@@ -147,5 +123,17 @@ export class SupabaseAddressRepository {
       .is('deleted_at', null);
 
     if (error) throw mapRlsError(error);
+  }
+
+  /**
+   * Verify ownership, delivery radius (ST_DWithin), and return snapshot payload.
+   */
+  async validateDelivery(addressId, branchId) {
+    const { data, error } = await this.client.rpc('validate_delivery_radius', {
+      p_address_id: addressId,
+      p_branch_id: branchId,
+    });
+    if (error) throw mapRlsError(error);
+    return data;
   }
 }

@@ -1,14 +1,62 @@
+/**
+ * Browser geolocation helpers with user-friendly error mapping.
+ */
+
+import { reverseGeocodeAddress } from './geocoding';
+
 const CACHE_KEY = 'getnear_current_location';
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+export const LocationErrorCode = {
+  PERMISSION_DENIED: 'PERMISSION_DENIED',
+  POSITION_UNAVAILABLE: 'POSITION_UNAVAILABLE',
+  TIMEOUT: 'TIMEOUT',
+  UNSUPPORTED: 'UNSUPPORTED',
+  NETWORK: 'NETWORK',
+  GEOCODE: 'GEOCODE',
+  UNKNOWN: 'UNKNOWN',
+};
+
+export function mapGeolocationError(err) {
+  const code = err?.code;
+  if (code === 1 || /denied/i.test(err?.message || '')) {
+    return {
+      code: LocationErrorCode.PERMISSION_DENIED,
+      message: 'Location permission denied. Enable location access in your browser settings.',
+    };
+  }
+  if (code === 2) {
+    return {
+      code: LocationErrorCode.POSITION_UNAVAILABLE,
+      message: 'Unable to determine your location. Try again outdoors or pick on the map.',
+    };
+  }
+  if (code === 3) {
+    return {
+      code: LocationErrorCode.TIMEOUT,
+      message: 'Location request timed out. Please try again.',
+    };
+  }
+  if (/geolocat|not supported/i.test(err?.message || '')) {
+    return {
+      code: LocationErrorCode.UNSUPPORTED,
+      message: 'Geolocation is not supported on this device.',
+    };
+  }
+  return {
+    code: LocationErrorCode.UNKNOWN,
+    message: err?.message || 'Could not get your location',
+  };
+}
 
 /**
- * Get the device's current coordinates via the Geolocation API.
- * @returns {Promise<{ lat: number, lng: number }>}
+ * High-accuracy GPS fix.
+ * @returns {Promise<{ lat: number, lng: number, accuracy?: number }>}
  */
 export function getCurrentCoordinates(options = {}) {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('Geolocation is not supported'));
+      reject(Object.assign(new Error('Geolocation is not supported'), { code: 0 }));
       return;
     }
 
@@ -17,48 +65,36 @@ export function getCurrentCoordinates(options = {}) {
         resolve({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
         });
       },
       (err) => reject(err),
       {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 5 * 60 * 1000,
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
         ...options,
       }
     );
   });
 }
 
-/**
- * Reverse-geocode coordinates to an OpenStreetMap address object.
- */
+/** @deprecated Use reverseGeocodeAddress from lib/geocoding.js */
 export async function reverseGeocode(lat, lng) {
-  const url = new URL('https://nominatim.openstreetmap.org/reverse');
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('lat', String(lat));
-  url.searchParams.set('lon', String(lng));
-  url.searchParams.set('zoom', '16');
-  url.searchParams.set('addressdetails', '1');
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      Accept: 'application/json',
-      'Accept-Language': 'en',
+  const result = await reverseGeocodeAddress(lat, lng);
+  return {
+    display_name: result.formattedAddress,
+    address: {
+      city: result.city,
+      state: result.state,
+      postcode: result.pincode,
+      country: result.country,
+      suburb: result.line2,
+      road: result.line1,
     },
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to reverse geocode location');
-  }
-
-  return res.json();
+  };
 }
 
-/**
- * Build a short display label from a Nominatim address payload.
- * e.g. "Andheri West, Mumbai"
- */
 export function formatLocationLabel(address) {
   if (!address) return '';
 
@@ -101,15 +137,12 @@ function writeCachedLocation({ label, lat, lng }) {
       JSON.stringify({ label, lat, lng, cachedAt: Date.now() })
     );
   } catch {
-    // ignore quota / private mode errors
+    // ignore
   }
 }
 
 /**
- * High-level helper: current coords → reverse geocode → short label.
- * Uses a short-lived localStorage cache for maintainability / fewer API calls.
- *
- * @returns {Promise<{ label: string, lat: number, lng: number }>}
+ * Current coords → reverse geocode → short navbar label.
  */
 export async function getCurrentLocationLabel({ useCache = true } = {}) {
   if (useCache) {
@@ -119,10 +152,39 @@ export async function getCurrentLocationLabel({ useCache = true } = {}) {
     }
   }
 
-  const { lat, lng } = await getCurrentCoordinates();
-  const data = await reverseGeocode(lat, lng);
-  const label = formatLocationLabel(data.address) || 'Current location';
+  const { lat, lng } = await getCurrentCoordinates({
+    enableHighAccuracy: false,
+    timeout: 10000,
+    maximumAge: 5 * 60 * 1000,
+  });
+  const data = await reverseGeocodeAddress(lat, lng);
+  const label =
+    [data.line2, data.city].filter(Boolean).join(', ') ||
+    data.formattedAddress?.split(',').slice(0, 2).join(',') ||
+    'Current location';
   const result = { label, lat, lng };
   writeCachedLocation(result);
   return result;
+}
+
+/**
+ * Full “use current location” flow for address forms.
+ */
+export async function detectCurrentAddress() {
+  try {
+    const { lat, lng } = await getCurrentCoordinates();
+    const address = await reverseGeocodeAddress(lat, lng);
+    return address;
+  } catch (err) {
+    const mapped = mapGeolocationError(err);
+    if (
+      mapped.code === LocationErrorCode.UNKNOWN &&
+      /geocod|fetch|network|failed/i.test(err?.message || '')
+    ) {
+      throw Object.assign(new Error('Could not look up this address. Please try again.'), {
+        code: LocationErrorCode.GEOCODE,
+      });
+    }
+    throw Object.assign(new Error(mapped.message), { code: mapped.code });
+  }
 }
