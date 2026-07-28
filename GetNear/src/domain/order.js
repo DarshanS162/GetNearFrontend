@@ -15,12 +15,37 @@ export function mapOrderItem(row) {
   };
 }
 
+function mapDeliverySnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  return mapAddress({
+    id: null,
+    user_id: null,
+    label: snapshot.label,
+    full_name: snapshot.full_name,
+    phone: snapshot.phone,
+    address_line1: snapshot.address_line1,
+    address_line2: snapshot.address_line2,
+    landmark: snapshot.landmark,
+    city: snapshot.city,
+    state: snapshot.state,
+    pincode: snapshot.pincode,
+    country: snapshot.country,
+    formatted_address: snapshot.formatted_address,
+    latitude: snapshot.latitude,
+    longitude: snapshot.longitude,
+    is_default: false,
+    created_at: null,
+  });
+}
+
 export function mapOrder(row) {
   if (!row) return null;
   const items = Array.isArray(row.order_items)
     ? row.order_items.map(mapOrderItem).filter(Boolean)
     : [];
-  const address = row.addresses ? mapAddress(row.addresses) : null;
+  const liveAddress = row.addresses ? mapAddress(row.addresses) : null;
+  const snapshotAddress = mapDeliverySnapshot(row.delivery_snapshot);
+  const address = snapshotAddress || liveAddress;
 
   return {
     id: row.id,
@@ -43,6 +68,8 @@ export function mapOrder(row) {
     cancelledReason: row.cancelled_reason || '',
     placedAt: row.placed_at,
     createdAt: row.created_at,
+    deliveryDistanceM:
+      row.delivery_distance_m != null ? Number(row.delivery_distance_m) : null,
     items,
     address,
     addressLine: address ? formatAddressLine(address) : '',

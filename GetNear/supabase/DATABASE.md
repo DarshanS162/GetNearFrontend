@@ -31,7 +31,8 @@ All migrations live in `supabase/migrations/` and must be applied **in numeric o
 | `020_create_coupon_usages.sql` | `coupon_usages` |
 | `021_create_notifications.sql` | `notifications` |
 | `022_create_reviews.sql` | `reviews` |
-| `023_create_favorites.sql` | `favorites` |
+| `033_coupon_referral_engine.sql` | Coupons / referrals RPCs |
+| `034_addresses_postgis_location.sql` | PostGIS `location`, address RPCs, order delivery snapshot |
 
 ## How to Apply Migrations
 
@@ -251,7 +252,7 @@ erDiagram
 | Area | Current Design | Future Extension |
 |------|---------------|------------------|
 | Multi-restaurant | `restaurant_id` on all tenant tables | Add RLS policies per restaurant; no schema change needed |
-| Multi-branch delivery | Geo indexes on branches | Add PostGIS extension + `ST_DWithin` for radius queries |
+| Multi-branch delivery | PostGIS `location` + `ST_DWithin` via `validate_delivery_radius` | Multi-branch nearest-branch selection at checkout |
 | Menu variants | Single product row | Add `product_variants` table (size, addons) linked to `products` |
 | Inventory | `products.is_available` flag | Add `inventory` table with branch-level stock counts |
 | Delivery partners | Branch fulfills order | Add `delivery_assignments` + `delivery_partners` tables |
@@ -271,7 +272,8 @@ Searchable and filter columns indexed:
 
 - User: `phone`, `email`, `role_id`
 - Restaurant: `slug`, `name`, `business_status`
-- Branch: `city`, `pincode`, `(latitude, longitude)`
+- Branch: `city`, `pincode`, GiST on `location`
+- Address: GiST on `location` (active rows)
 - Product: `name`, `food_type`, `selling_price`, `is_available`, `is_featured`
 - Order: `order_number`, `payment_status`, `order_status`, `placed_at`, Razorpay IDs
 - Coupon: `code` (case-insensitive per restaurant), validity window

@@ -3,7 +3,8 @@ import { mapRlsError, resolveAppUserId } from '../../infrastructure/supabase/res
 
 /**
  * PlaceOrder use-case (application service).
- * NestJS: @Injectable() PlaceOrderService with injected repos.
+ * Frontend sends addressId only; server fetches address, verifies ownership,
+ * validates delivery radius via PostGIS, and stores an immutable snapshot.
  */
 export class PlaceOrder {
   constructor({
@@ -68,6 +69,12 @@ export class PlaceOrder {
       }
 
       const branchId = await this.branchRepository.ensureMainBranchId(restaurantId);
+
+      const deliveryCheck = await this.addressRepository.validateDelivery(
+        addressId,
+        branchId,
+      );
+
       const orderNumber = generateOrderNumber();
 
       const lineItems = items.map((item) => {
@@ -95,8 +102,6 @@ export class PlaceOrder {
         customer_id: linkedCustomerId,
         address_id: addressId,
         subtotal: Number(subtotal),
-        // Coupon redemption is revalidated and applied by the database after
-        // item snapshots exist. Start from the pre-coupon financial values.
         discount_amount: 0,
         delivery_charge: Number(deliveryCharge) + Number(deliveryDiscount),
         tax_amount: Number(taxAmount),
@@ -106,6 +111,12 @@ export class PlaceOrder {
         order_status: 'placed',
         payment_method: 'cod',
         customer_notes: customerNotes || null,
+        delivery_snapshot: deliveryCheck?.snapshot || null,
+        delivery_distance_m:
+          deliveryCheck?.distance_m != null
+            ? Number(deliveryCheck.distance_m)
+            : null,
+        // delivery_location is filled by DB trigger from address.location
       };
 
       const paymentRow = {
