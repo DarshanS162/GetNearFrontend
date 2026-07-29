@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCatalog } from '../../context/CatalogContext';
 import { RequireAuth } from '../../components/auth/RequireAuth';
 import { IconBack, IconLocation, IconUser, IconPhone } from '../../components/ui/Icons';
 import { formatAddressLine } from '../../domain/address';
+import { isStoreOpen } from '../../domain/restaurant';
 import { useAddresses } from '../../presentation/hooks/useAddresses';
 import { orderUseCases } from '../../application/container';
 import {
@@ -18,6 +20,7 @@ function CheckoutPageInner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { getBusiness } = useCatalog();
   const {
     businessId,
     items,
@@ -32,13 +35,15 @@ function CheckoutPageInner() {
     clearCart,
   } = useCart();
   const { addresses, loading: addressesLoading, defaultAddress } = useAddresses();
+  const restaurant = getBusiness(businessId);
+  const storeOpen = isStoreOpen(restaurant);
 
   const [selectedAddressId, setSelectedAddressId] = useState(
     () => location.state?.addressId || readSelectedAddressId() || '',
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     if (selectedAddressId) {
@@ -57,18 +62,26 @@ function CheckoutPageInner() {
   const selectedHasPin =
     selectedAddress?.latitude != null && selectedAddress?.longitude != null;
 
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 4000);
+  }
+
   async function handlePlaceOrder() {
-    setError('');
     if (!itemCount || !businessId) {
-      setError('Your cart is empty');
+      showToast('Your cart is empty');
+      return;
+    }
+    if (!storeOpen) {
+      showToast('This store is closed right now. Please try again when it opens.');
       return;
     }
     if (!selectedAddress?.id) {
-      setError('Please add a delivery address');
+      showToast('Please add a delivery address');
       return;
     }
     if (!selectedHasPin) {
-      setError('Selected address needs a map pin. Edit it under Saved addresses.');
+      showToast('Selected address needs a map pin. Edit it under Saved addresses.');
       return;
     }
 
@@ -99,7 +112,7 @@ function CheckoutPageInner() {
       clearCart();
       navigate(`/order/${order.id}`);
     } catch (err) {
-      setError(err.message || 'Could not place order');
+      showToast(err.message || 'Could not place order');
     } finally {
       setPlacing(false);
     }
@@ -135,6 +148,15 @@ function CheckoutPageInner() {
           </Link>
           <h1>Checkout</h1>
         </div>
+
+        {!storeOpen && (
+          <div className="checkout-section card" style={{ background: 'rgba(239,68,68,0.08)', marginBottom: 12 }}>
+            <strong>{restaurant?.name || 'This store'} is closed</strong>
+            <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
+              Orders cannot be placed until the store opens again.
+            </p>
+          </div>
+        )}
 
         <div className="checkout-section card">
           <div className="address-row">
@@ -256,15 +278,19 @@ function CheckoutPageInner() {
           </div>
         </div>
 
-        {error && <p className="checkout-error">{error}</p>}
+        {toast && <div className="admin-toast checkout-toast">{toast}</div>}
 
         <button
           type="button"
           className="btn btn-primary btn-full place-order-btn"
           onClick={handlePlaceOrder}
-          disabled={placing || !selectedAddress || !selectedHasPin}
+          disabled={placing || !storeOpen || !selectedAddress || !selectedHasPin}
         >
-          {placing ? 'Placing order…' : `Place order · ₹${total}`}
+          {!storeOpen
+            ? 'Store closed'
+            : placing
+              ? 'Placing order…'
+              : `Place order · ₹${total}`}
         </button>
       </main>
     </div>

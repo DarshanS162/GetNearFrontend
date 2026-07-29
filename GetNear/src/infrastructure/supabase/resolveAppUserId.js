@@ -60,5 +60,15 @@ export function mapRlsError(err) {
       'Permission denied for this action. Please logout and login again, then retry.',
     );
   }
+  if (/outside the delivery area|delivery zone|not deliver/i.test(message)) {
+    return new Error(
+      "Sorry, this store doesn't deliver to your selected address. Try a different address or restaurant nearby.",
+    );
+  }
+  if (/store is currently closed|not accepting orders/i.test(message)) {
+    return new Error(
+      'This store is closed right now. Please try again when it opens.',
+    );
+  }
   return err instanceof Error ? err : new Error(message);
 }

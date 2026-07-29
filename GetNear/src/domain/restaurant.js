@@ -14,14 +14,12 @@ export const BUSINESS_STATUS_LABELS = {
   [BUSINESS_STATUS.REJECTED]: 'Rejected',
 };
 
-/** Customer catalog: only approved + currently open stores. */
+/** Customer catalog: approved stores (open or temporarily closed). */
 export function isCustomerVisible(restaurant) {
-  return (
-    restaurant?.businessStatus === BUSINESS_STATUS.ACTIVE &&
-    restaurant?.isActive !== false
-  );
+  return restaurant?.businessStatus === BUSINESS_STATUS.ACTIVE;
 }
 
+/** True when the store can accept new orders right now. */
 export function isStoreOpen(restaurant) {
   return (
     restaurant?.businessStatus === BUSINESS_STATUS.ACTIVE &&

@@ -6,6 +6,7 @@ import {
   nextOwnerStatuses,
 } from '../../domain/orderStatus';
 import '../admin/AdminLayout.css';
+import './OwnerLayout.css';
 
 export default function OwnerOrdersPage() {
   const { user } = useAuth();
@@ -64,56 +65,67 @@ export default function OwnerOrdersPage() {
     <>
       <div className="admin-page-header">
         <h1>Orders</h1>
-        <p>Incoming orders for your restaurant. Refreshes every 20s.</p>
+        <p>Incoming orders refresh every 20 seconds.</p>
       </div>
 
-      {error && (
-        <div className="card" style={{ padding: 16, marginBottom: 16, color: '#ef4444' }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="owner-alert owner-alert--danger">{error}</div>}
 
-      {loading && <p style={{ color: 'var(--color-text-secondary)' }}>Loading orders…</p>}
+      {loading && <p className="owner-muted">Loading orders…</p>}
 
       {!loading && orders.length === 0 && (
-        <div className="card" style={{ padding: 24 }}>
-          <p style={{ margin: 0 }}>No orders yet. They will show up here when customers place COD orders.</p>
+        <div className="owner-empty card">
+          <strong>No orders yet</strong>
+          <p>New COD orders will appear here automatically.</p>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="owner-orders-list">
         {orders.map((order) => {
           const next = nextOwnerStatuses(order.orderStatus);
           return (
-            <div key={order.id} className="card" style={{ padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                <strong>{order.orderNumber}</strong>
-                <span style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 13 }}>
-                  {ORDER_STATUS_LABELS[order.orderStatus]}
-                </span>
+            <article key={order.id} className="card owner-order-card">
+              <div className="owner-order-card-top">
+                <div>
+                  <strong className="owner-order-number">{order.orderNumber}</strong>
+                  <p className="owner-order-meta">
+                    {new Date(order.placedAt).toLocaleString()} · COD
+                  </p>
+                </div>
+                <div className="owner-order-side">
+                  <span className="owner-order-status">
+                    {ORDER_STATUS_LABELS[order.orderStatus]}
+                  </span>
+                  <span className="owner-order-amount">₹{order.grandTotal}</span>
+                </div>
               </div>
-              <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                {new Date(order.placedAt).toLocaleString()} · ₹{order.grandTotal} · COD
-              </p>
-              <ul style={{ margin: '0 0 12px', paddingLeft: 18, fontSize: 14 }}>
+
+              <ul className="owner-order-items">
                 {order.items.map((item) => (
                   <li key={item.id}>
-                    {item.quantity}× {item.productName}
+                    <span>
+                      {item.quantity}× {item.productName}
+                    </span>
+                    <span>₹{item.totalPrice}</span>
                   </li>
                 ))}
               </ul>
+
               {order.addressLine && (
-                <p style={{ margin: '0 0 12px', fontSize: 13 }}>
-                  Deliver to: {order.address?.fullName} — {order.addressLine}
+                <p className="owner-order-address">
+                  <span className="owner-order-address-label">Deliver to</span>
+                  {order.address?.fullName} — {order.addressLine}
                 </p>
               )}
+
               {next.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="owner-order-actions">
                   {next.map((status) => (
                     <button
                       key={status}
                       type="button"
-                      className="btn btn-primary btn-sm"
+                      className={`btn btn-sm ${
+                        status === 'cancelled' ? 'btn-secondary' : 'btn-primary'
+                      }`}
                       disabled={updatingId === order.id}
                       onClick={() => handleStatus(order.id, status)}
                     >
@@ -122,7 +134,7 @@ export default function OwnerOrdersPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
       </div>

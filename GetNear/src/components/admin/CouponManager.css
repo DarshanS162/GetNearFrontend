@@ -157,9 +157,22 @@
 @media (max-width: 640px) {
   .coupon-page-header {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coupon-page-header .btn {
+    width: 100%;
   }
 
   .coupon-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
   }
 }

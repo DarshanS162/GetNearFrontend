@@ -63,6 +63,21 @@ export class PlaceOrder {
     try {
       const linkedCustomerId = await resolveAppUserId(this.supabaseClient);
 
+      const { data: restaurant, error: restaurantError } = await this.supabaseClient
+        .from('restaurants')
+        .select('id, business_status, is_active')
+        .eq('id', restaurantId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (restaurantError) throw restaurantError;
+      if (!restaurant || restaurant.business_status !== 'active') {
+        throw new Error('This store is not available');
+      }
+      if (restaurant.is_active === false) {
+        throw new Error('This store is currently closed and not accepting orders');
+      }
+
       const address = await this.addressRepository.findById(addressId);
       if (!address || address.userId !== linkedCustomerId) {
         throw new Error('Selected address is invalid');

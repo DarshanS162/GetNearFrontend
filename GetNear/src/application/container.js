@@ -78,3 +78,5 @@ export const couponUseCases = {
 export const referralUseCases = {
   manage: new ManageReferrals(deps),
 };
+
+export { branchRepository };

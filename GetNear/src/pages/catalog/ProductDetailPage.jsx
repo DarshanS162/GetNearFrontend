@@ -4,7 +4,7 @@ import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
 import { IconBack } from '../../components/ui/Icons';
 import { QuantityControl } from '../../components/ui/Shared';
-import { isCustomerVisible } from '../../domain/restaurant';
+import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
 import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {
@@ -34,6 +34,7 @@ export default function ProductDetailPage() {
     );
   }
 
+  const storeOpen = isStoreOpen(business);
   const similar = products
     .filter((p) => p.businessId === product.businessId && p.id !== product.id)
     .slice(0, 3);
@@ -70,24 +71,41 @@ export default function ProductDetailPage() {
 
           <p className="product-desc">{product.description}</p>
 
+          {!storeOpen && (
+            <div className="card" style={{ padding: 12, marginBottom: 16, background: 'rgba(239,68,68,0.08)' }}>
+              <strong>{business.name} is closed</strong>
+              <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
+                This store is not accepting orders right now.
+              </p>
+            </div>
+          )}
+
           <div className="product-section card">
             <h3>Ingredients</h3>
             <p>{product.ingredients}</p>
           </div>
 
           <div className="product-actions">
-            <QuantityControl
-              quantity={qty}
-              onAdd={() => addItem(product.id)}
-              onRemove={() => removeItem(product.id)}
-            />
-            {qty === 0 && (
-              <button
-                type="button"
-                className="btn btn-primary btn-full"
-                onClick={() => addItem(product.id)}
-              >
-                Add to cart · ₹{product.price}
+            {storeOpen ? (
+              <>
+                <QuantityControl
+                  quantity={qty}
+                  onAdd={() => addItem(product.id)}
+                  onRemove={() => removeItem(product.id)}
+                />
+                {qty === 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-full"
+                    onClick={() => addItem(product.id)}
+                  >
+                    Add to cart · ₹{product.price}
+                  </button>
+                )}
+              </>
+            ) : (
+              <button type="button" className="btn btn-secondary btn-full" disabled>
+                Store closed
               </button>
             )}
           </div>

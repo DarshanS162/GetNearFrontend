@@ -4,6 +4,13 @@ import { useCatalog } from '../../context/CatalogContext';
 import { BUSINESS_STATUS, BUSINESS_STATUS_LABELS } from '../../domain/restaurant';
 import { partnerUseCases } from '../../application/container';
 import { useState } from 'react';
+import {
+  IconOrders,
+  IconMenuBoard,
+  IconSettings,
+  IconLocation,
+} from '../../components/ui/Icons';
+import './OwnerLayout.css';
 
 export default function OwnerDashboard() {
   const { user } = useAuth();
@@ -28,6 +35,7 @@ export default function OwnerDashboard() {
   const pending = restaurant.businessStatus === BUSINESS_STATUS.PENDING_APPROVAL;
   const rejected = restaurant.businessStatus === BUSINESS_STATUS.REJECTED;
   const canToggle = restaurant.businessStatus === BUSINESS_STATUS.ACTIVE;
+  const isOpen = canToggle && restaurant.isOpen;
 
   async function handleToggleOpen() {
     if (!canToggle) return;
@@ -44,70 +52,112 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <>
-      <div className="admin-page-header admin-page-header-row">
-        <div>
-          <h1>{restaurant.name}</h1>
-          <p>
-            {BUSINESS_STATUS_LABELS[restaurant.businessStatus] || restaurant.businessStatus}
-            {canToggle && <> · {restaurant.isOpen ? 'Open for orders' : 'Closed'}</>}
-          </p>
+    <div className="owner-dashboard">
+      <section className="owner-hero-card card">
+        <div className="owner-hero-top">
+          <div className="owner-hero-copy">
+            <p className="owner-hero-eyebrow">Your store</p>
+            <h1>{restaurant.name}</h1>
+            <p className="owner-hero-sub">
+              {restaurant.location || 'Location not set'}
+              {restaurant.type ? ` · ${restaurant.type}` : ''}
+            </p>
+          </div>
+          <span
+            className={`owner-status-pill ${
+              rejected
+                ? 'owner-status-pill--danger'
+                : pending
+                  ? 'owner-status-pill--warn'
+                  : isOpen
+                    ? 'owner-status-pill--success'
+                    : 'owner-status-pill--muted'
+            }`}
+          >
+            {rejected
+              ? 'Rejected'
+              : pending
+                ? 'Pending'
+                : isOpen
+                  ? 'Open now'
+                  : canToggle
+                    ? 'Closed'
+                    : BUSINESS_STATUS_LABELS[restaurant.businessStatus]}
+          </span>
         </div>
+
         {canToggle && (
           <button
             type="button"
-            className={`btn ${restaurant.isOpen ? 'btn-secondary' : 'btn-primary'}`}
+            className={`btn ${isOpen ? 'btn-secondary' : 'btn-primary'} owner-hero-toggle`}
             onClick={handleToggleOpen}
             disabled={toggling}
           >
-            {toggling ? 'Updating…' : restaurant.isOpen ? 'Close store' : 'Open store'}
+            {toggling ? 'Updating…' : isOpen ? 'Close store' : 'Open store'}
           </button>
         )}
-      </div>
+      </section>
 
-      {error && (
-        <div className="card" style={{ padding: 12, marginBottom: 16, color: '#ef4444' }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="owner-alert owner-alert--danger">{error}</div>}
 
       {pending && (
-        <div className="card" style={{ padding: 16, marginBottom: 16, background: 'rgba(255,159,28,0.12)' }}>
+        <div className="owner-alert owner-alert--warn">
           <strong>Pending admin approval</strong>
-          <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
-            Your store is not visible to customers yet. You can still prepare your menu and settings.
-          </p>
+          <p>Your store is not visible to customers yet. You can still prepare menu and settings.</p>
         </div>
       )}
 
       {rejected && (
-        <div className="card" style={{ padding: 16, marginBottom: 16, color: '#ef4444' }}>
+        <div className="owner-alert owner-alert--danger">
           Application rejected{restaurant.rejectionReason ? `: ${restaurant.rejectionReason}` : '.'}
         </div>
       )}
 
-      <div className="admin-stats">
-        <div className="admin-stat-card card">
-          <span>Menu items</span>
-          <strong>{itemCount}</strong>
+      <div className="owner-stat-grid">
+        <div className="owner-stat card">
+          <span className="owner-stat-label">Menu items</span>
+          <strong className="owner-stat-value">{itemCount}</strong>
         </div>
-        <div className="admin-stat-card card">
-          <span>Status</span>
-          <strong style={{ fontSize: 18 }}>
-            {canToggle ? (restaurant.isOpen ? 'Open' : 'Closed') : BUSINESS_STATUS_LABELS[restaurant.businessStatus]}
+        <div className="owner-stat card">
+          <span className="owner-stat-label">Store status</span>
+          <strong className="owner-stat-value owner-stat-value--sm">
+            {canToggle ? (isOpen ? 'Open' : 'Closed') : BUSINESS_STATUS_LABELS[restaurant.businessStatus]}
           </strong>
         </div>
-        <div className="admin-stat-card card">
-          <span>Location</span>
-          <strong style={{ fontSize: 16 }}>{restaurant.location || '—'}</strong>
+        <div className="owner-stat card owner-stat--wide">
+          <span className="owner-stat-label">
+            <IconLocation size={14} /> Location
+          </span>
+          <strong className="owner-stat-value owner-stat-value--sm">
+            {restaurant.location || '—'}
+          </strong>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link to="/owner/orders" className="btn btn-primary">Orders</Link>
-        <Link to="/owner/menu" className="btn btn-secondary">Menu</Link>
-        <Link to="/owner/settings" className="btn btn-secondary">Store settings</Link>
+      <p className="owner-section-title">Quick actions</p>
+      <div className="owner-quick-grid">
+        <Link to="/owner/orders" className="owner-quick-card card">
+          <span className="owner-quick-icon owner-quick-icon--orders">
+            <IconOrders size={20} />
+          </span>
+          <strong>Orders</strong>
+          <span>Manage incoming COD orders</span>
+        </Link>
+        <Link to="/owner/menu" className="owner-quick-card card">
+          <span className="owner-quick-icon owner-quick-icon--menu">
+            <IconMenuBoard size={20} />
+          </span>
+          <strong>Menu</strong>
+          <span>Add or edit dishes</span>
+        </Link>
+        <Link to="/owner/settings" className="owner-quick-card card">
+          <span className="owner-quick-icon owner-quick-icon--store">
+            <IconSettings size={20} />
+          </span>
+          <strong>Store</strong>
+          <span>Update store details</span>
+        </Link>
       </div>
-    </>
+    </div>
   );
 }

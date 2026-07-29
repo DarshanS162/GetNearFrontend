@@ -71,22 +71,124 @@ button.address-card {
   font-size: 18px;
 }
 
+.address-map-search {
+  position: relative;
+  z-index: 2;
+}
+
+.address-map-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.address-map-search-bar svg {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.address-map-search-bar .form-input {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.address-map-search-bar .form-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.address-map-search-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.address-map-suggestions {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.address-map-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.address-map-suggestion:hover,
+.address-map-suggestion:focus-visible {
+  background: rgba(255, 107, 53, 0.08);
+}
+
+.address-map-suggestion svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
 .address-map-canvas {
   width: 100%;
-  height: min(48vh, 360px);
+  height: min(42vh, 320px);
   border-radius: var(--radius-md);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
+.address-map-preview {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.address-map-preview-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
 .address-map-preview .address-line {
   margin: 0;
   font-size: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.address-map-preview .address-line svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
 }
 
 .address-coords {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }

@@ -1,0 +1,182 @@
+.menu-category-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.menu-category-field-head .form-label {
+  margin-bottom: 0;
+}
+
+.menu-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.menu-category-create-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menu-category-create-link:hover {
+  text-decoration: underline;
+}
+
+.menu-category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.menu-category-chips .chip,
+.menu-category-suggestions .chip {
+  cursor: pointer;
+}
+
+.menu-category-hint {
+  color: var(--color-primary);
+}
+
+.menu-category-empty,
+.menu-category-create {
+  padding: 14px;
+  border-radius: var(--radius-lg, 14px);
+  border: 1px dashed var(--color-border);
+  background: var(--color-bg);
+}
+
+.menu-category-empty-title,
+.menu-category-create-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.menu-category-empty .form-hint,
+.menu-category-create .form-hint {
+  margin: 0 0 12px;
+}
+
+.menu-category-empty .btn {
+  margin-top: 4px;
+}
+
+.menu-category-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.menu-category-suggestions .chip {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--color-surface);
+}
+
+.menu-category-suggestions .chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.menu-category-manager-add {
+  margin-bottom: 8px;
+}
+
+.menu-category-manager-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.menu-category-manager-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-category-manager-row .btn {
+  flex-shrink: 0;
+}
+
+.menu-category-manager-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.menu-category-manager-list-label {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.menu-category-manager-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-category-manager-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.menu-category-manager-item strong {
+  display: block;
+  font-size: 14px;
+}
+
+.menu-category-manager-item span {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.menu-price-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .menu-header-actions {
+    width: 100%;
+  }
+
+  .menu-header-actions .btn {
+    flex: 1;
+  }
+
+  .menu-category-chips .chip {
+    padding: 10px 14px;
+  }
+
+  .menu-category-manager-row {
+    flex-direction: column;
+  }
+
+  .menu-price-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

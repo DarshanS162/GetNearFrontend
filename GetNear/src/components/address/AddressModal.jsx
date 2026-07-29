@@ -118,16 +118,22 @@ export function AddressModal({
               onClick={() => setMapOpen(true)}
               disabled={saving}
             >
-              Pick on map
+              Search or pick on map
             </button>
           </div>
 
           {!hasPin && (
             <p className="muted">
-              Choose current location or pick a pin on the map to continue.
+              Use current location, or search / pick a pin on the map to continue.
             </p>
           )}
 
+          {hasPin && form.formattedAddress && (
+            <div className="address-detected">
+              <strong>Selected location</strong>
+              <p>{form.formattedAddress}</p>
+            </div>
+          )}
           {hasPin && (
             <AddressFormFields form={form} onChange={setForm} />
           )}

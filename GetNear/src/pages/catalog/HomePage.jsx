@@ -2,13 +2,24 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { SearchBar } from '../../components/ui/Shared';
-import { IconStar } from '../../components/ui/Icons';
+import { IconStar, IconClock, IconBike } from '../../components/ui/Icons';
 import { useMemo } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
-import { categories } from '../../data/mockData';
 import { isCustomerVisible } from '../../domain/restaurant';
 import './HomePage.css';
+
+function StoreCardSkeleton() {
+  return (
+    <div className="home-store-card home-store-card--skeleton" aria-hidden="true">
+      <div className="home-store-media home-skel" />
+      <div className="home-store-body">
+        <div className="home-skel home-skel-line" />
+        <div className="home-skel home-skel-line home-skel-line--short" />
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { businesses, trendingDishes, loading, error } = useCatalog();
@@ -19,8 +30,11 @@ export default function HomePage() {
     () => businesses.filter(isCustomerVisible),
     [businesses],
   );
+  const openCount = useMemo(
+    () => liveBusinesses.filter((b) => b.isOpen).length,
+    [liveBusinesses],
+  );
 
-  // Owners/admins land on their panel by default; ?view=customer keeps customer browse.
   if (!authLoading && !customerView && isAdmin) {
     return <Navigate to="/admin" replace />;
   }
@@ -29,94 +43,94 @@ export default function HomePage() {
   }
 
   return (
-    <div className="app-shell animate-in">
+    <div className="app-shell home-shell animate-in">
       <Navbar />
       <main className="page-container home-page">
-        <section className="hero">
+        <section className="home-hero">
+          <p className="home-hero-kicker">GetNear</p>
           <h1>
             Great food,
             <br />
-            <span className="hero-accent">right nearby</span>
+            <span className="home-hero-accent">right nearby</span>
           </h1>
-          <p>Order from trusted local businesses in minutes</p>
-          <SearchBar placeholder="Search restaurants, dishes, stores..." />
+          <p className="home-hero-sub">
+            Order from trusted local kitchens — fast delivery to your door.
+          </p>
+          <div className="home-hero-search">
+            <SearchBar placeholder="Search restaurants or dishes…" />
+          </div>
         </section>
 
         {error && (
-          <div className="empty-state card" style={{ marginBottom: 24 }}>
-            <p>Could not load stores from Supabase.</p>
-            <span className="empty-state-sub">{error}</span>
+          <div className="home-alert">
+            <strong>Couldn’t load stores</strong>
+            <span>{error}</span>
           </div>
         )}
 
-        {loading && (
-          <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>
-            Loading nearby stores…
-          </p>
-        )}
-
         <section className="home-section">
-          <h2 className="section-title">Popular categories</h2>
-          <div className="category-grid">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className="category-item"
-                style={{ '--cat-bg': cat.bg, '--cat-color': cat.color }}
-              >
-                <span className="category-icon">{cat.icon}</span>
-                <span className="category-name">{cat.name}</span>
-              </button>
-            ))}
+          <div className="home-section-head">
+            <div>
+              <h2>Nearby stores</h2>
+              <p>
+                {loading
+                  ? 'Finding places around you…'
+                  : liveBusinesses.length === 0
+                    ? 'New kitchens joining soon'
+                    : `${openCount} open · ${liveBusinesses.length} nearby`}
+              </p>
+            </div>
           </div>
-        </section>
 
-        <section className="home-section">
-          <div className="section-header">
-            <h2 className="section-title" style={{ margin: 0 }}>Featured near you</h2>
-          </div>
-          {liveBusinesses.length === 0 ? (
-            <div className="empty-state card">
-              <p>No stores nearby yet.</p>
-              <span className="empty-state-sub">
-                We&apos;re adding local businesses in your area. Check back soon!
-              </span>
+          {loading ? (
+            <div className="home-store-scroll">
+              <StoreCardSkeleton />
+              <StoreCardSkeleton />
+              <StoreCardSkeleton />
+            </div>
+          ) : liveBusinesses.length === 0 ? (
+            <div className="home-empty">
+              <strong>No stores nearby yet</strong>
+              <p>We’re onboarding local restaurants in your area. Check back soon.</p>
             </div>
           ) : (
-            <div className="business-scroll">
+            <div className="home-store-scroll">
               {liveBusinesses.map((biz) => (
                 <Link
                   key={biz.id}
                   to={`/business/${biz.id}`}
-                  className="business-card card card-interactive"
+                  className={`home-store-card${!biz.isOpen ? ' home-store-card--closed' : ''}`}
                 >
-                  {biz.offer && (
-                    <span className="badge badge-success business-offer">{biz.offer}</span>
-                  )}
                   <div
-                    className="business-banner"
-                    style={{ background: biz.bannerColor }}
+                    className="home-store-media"
+                    style={{ background: biz.bannerColor || '#FFF0E8' }}
                   >
                     {biz.bannerUrl ? (
-                      <img src={biz.bannerUrl} alt="" className="business-banner-img" />
+                      <img src={biz.bannerUrl} alt="" />
                     ) : (
-                      <span className="business-emoji">{biz.icon}</span>
+                      <span className="home-store-fallback">{biz.icon || '🍽️'}</span>
                     )}
+                    <span className={`home-store-status ${biz.isOpen ? 'is-open' : 'is-closed'}`}>
+                      {biz.isOpen ? 'Open' : 'Closed'}
+                    </span>
                   </div>
-                  <div className="business-info">
-                    <h3>
-                      {biz.name}
-                      {!biz.isOpen && (
-                        <span className="badge" style={{ marginLeft: 8, fontSize: 11 }}>
-                          Closed
-                        </span>
-                      )}
-                    </h3>
-                    <p className="business-meta">{biz.type}</p>
-                    <p className="business-stats">
-                      <IconStar size={12} filled /> {biz.rating} · {biz.deliveryTime} min
+                  <div className="home-store-body">
+                    <h3>{biz.name}</h3>
+                    <p className="home-store-meta">
+                      {[biz.type, biz.location].filter(Boolean).join(' · ') || 'Local kitchen'}
                     </p>
+                    <div className="home-store-stats">
+                      <span>
+                        <IconStar size={12} filled /> {biz.rating}
+                      </span>
+                      <span>
+                        <IconClock size={12} /> {biz.deliveryTime} min
+                      </span>
+                      <span>
+                        <IconBike size={12} /> Free ₹{biz.freeDeliveryAbove}+
+                      </span>
+                    </div>
+                    {biz.offer && <p className="home-store-offer">{biz.offer}</p>}
                   </div>
                 </Link>
               ))}
@@ -125,38 +139,43 @@ export default function HomePage() {
         </section>
 
         {trendingDishes.length > 0 && (
-        <section className="home-section">
-          <h2 className="section-title">Trending dishes</h2>
-          <div className="trending-scroll">
-            {trendingDishes.map((dish) => (
-              <Link
-                key={dish.id}
-                to={`/product/${dish.id}`}
-                className="trending-card card card-interactive"
-              >
-                <span className="trending-emoji">
-                  {dish.imageUrl ? (
-                    <img src={dish.imageUrl} alt="" className="trending-img" />
-                  ) : (
-                    dish.emoji
-                  )}
-                </span>
-                <span className="trending-name">{dish.name}</span>
-                <span className="trending-price">₹{dish.price}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
+          <section className="home-section">
+            <div className="home-section-head">
+              <div>
+                <h2>Popular right now</h2>
+                <p>Dishes people are ordering nearby</p>
+              </div>
+            </div>
+            <div className="home-dish-scroll">
+              {trendingDishes.map((dish) => (
+                <Link key={dish.id} to={`/product/${dish.id}`} className="home-dish-card">
+                  <div className="home-dish-media">
+                    {dish.imageUrl ? (
+                      <img src={dish.imageUrl} alt="" />
+                    ) : (
+                      <span>{dish.emoji || '🍽️'}</span>
+                    )}
+                  </div>
+                  <div className="home-dish-body">
+                    <strong>{dish.name}</strong>
+                    <span>₹{dish.price}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="home-section">
-          <div className="offer-banner card">
+          <div className="home-promo">
             <div>
-              <span className="badge badge-secondary">Limited time</span>
-              <h3>Flat 20% off</h3>
-              <p>On your first order above ₹299</p>
+              <p className="home-promo-label">First order</p>
+              <h3>Save on your first GetNear meal</h3>
+              <p>Enjoy a welcome discount when you order above ₹299.</p>
             </div>
-            <span className="offer-emoji">🎉</span>
+            <Link to={liveBusinesses[0] ? `/business/${liveBusinesses[0].id}` : '/'} className="btn btn-primary">
+              Order now
+            </Link>
           </div>
         </section>
 
