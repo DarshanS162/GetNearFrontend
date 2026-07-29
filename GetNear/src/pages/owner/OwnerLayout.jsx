@@ -8,6 +8,7 @@ import {
   IconMenuBoard,
   IconTicket,
   IconSettings,
+  IconUser,
 } from '../../components/ui/Icons';
 import '../admin/AdminLayout.css';
 import './OwnerLayout.css';
@@ -21,7 +22,7 @@ const navItems = [
 ];
 
 export default function OwnerLayout() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <RequireRole role="restaurant_owner">
@@ -33,9 +34,14 @@ export default function OwnerLayout() {
               Hi, {user?.fullName?.split(' ')[0] || 'Partner'}
             </span>
           </div>
-          <button type="button" className="owner-mobile-logout" onClick={logout}>
-            Logout
-          </button>
+          <NavLink
+            to="/owner/profile"
+            className="owner-mobile-profile"
+            aria-label="Profile"
+            title="Profile"
+          >
+            <IconUser size={18} />
+          </NavLink>
         </header>
 
         <aside className="admin-sidebar owner-sidebar">
@@ -58,13 +64,25 @@ export default function OwnerLayout() {
                 <span>{item.label}</span>
               </NavLink>
             ))}
+            <NavLink
+              to="/owner/profile"
+              className={({ isActive }) =>
+                `admin-nav-link ${isActive ? 'admin-nav-link--active' : ''}`
+              }
+            >
+              <IconUser size={18} />
+              <span>Profile</span>
+            </NavLink>
           </nav>
 
           <div className="admin-sidebar-footer">
             <p className="admin-user-label">{user?.fullName}</p>
-            <button type="button" className="admin-back-link" onClick={logout}>
-              Logout
-            </button>
+            <p className="admin-user-phone">
+              {user?.phone ? `+91 ${user.phone}` : ''}
+            </p>
+            <NavLink to="/owner/profile" className="admin-back-link">
+              View profile
+            </NavLink>
             <NavLink
               to="/?view=customer"
               className="admin-back-link"

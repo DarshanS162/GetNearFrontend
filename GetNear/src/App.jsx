@@ -33,6 +33,7 @@ import OwnerMenuPage from './pages/owner/OwnerMenuPage';
 import OwnerOrdersPage from './pages/owner/OwnerOrdersPage';
 import OwnerSettingsPage from './pages/owner/OwnerSettingsPage';
 import OwnerCouponsPage from './pages/owner/OwnerCouponsPage';
+import OwnerProfilePage from './pages/owner/OwnerProfilePage';
 
 import PartnerApplyPage from './pages/partner/PartnerApplyPage';
 
@@ -78,6 +79,7 @@ export default function App() {
                 <Route path="menu" element={<OwnerMenuPage />} />
                 <Route path="settings" element={<OwnerSettingsPage />} />
                 <Route path="coupons" element={<OwnerCouponsPage />} />
+                <Route path="profile" element={<OwnerProfilePage />} />
               </Route>
             </Routes>
           </BrowserRouter>

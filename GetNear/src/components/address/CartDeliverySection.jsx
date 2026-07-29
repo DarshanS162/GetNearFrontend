@@ -131,7 +131,7 @@ export function CartDeliverySection({
             {!loading && !selectedAddress && (
               <>
                 <strong>Add delivery location</strong>
-                <p>Use current location or pick on the map.</p>
+                <p>Use current location, or search / pick on the map.</p>
               </>
             )}
             {error && <p className="form-error" style={{ marginTop: 6 }}>{error}</p>}

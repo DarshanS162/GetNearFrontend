@@ -4,7 +4,7 @@ export const ORDER_STATUS = {
   PLACED: 'placed',
   CONFIRMED: 'confirmed',
   PREPARING: 'preparing',
-  READY: 'ready',
+  READY: 'ready', // legacy — no longer used in owner flow
   OUT_FOR_DELIVERY: 'out_for_delivery',
   DELIVERED: 'delivered',
   CANCELLED: 'cancelled',
@@ -14,13 +14,13 @@ export const ORDER_STATUS_LABELS = {
   [ORDER_STATUS.PLACED]: 'Placed',
   [ORDER_STATUS.CONFIRMED]: 'Confirmed',
   [ORDER_STATUS.PREPARING]: 'Preparing',
-  [ORDER_STATUS.READY]: 'Ready',
+  [ORDER_STATUS.READY]: 'Preparing', // legacy orders map to Preparing
   [ORDER_STATUS.OUT_FOR_DELIVERY]: 'Out for delivery',
   [ORDER_STATUS.DELIVERED]: 'Delivered',
   [ORDER_STATUS.CANCELLED]: 'Cancelled',
 };
 
-/** Customer-facing timeline (excludes cancelled + ready — fewer steps, less overwhelm). */
+/** Customer-facing timeline (excludes cancelled). */
 export const ORDER_TIMELINE = [
   ORDER_STATUS.PLACED,
   ORDER_STATUS.CONFIRMED,
@@ -32,8 +32,9 @@ export const ORDER_TIMELINE = [
 const OWNER_TRANSITIONS = {
   [ORDER_STATUS.PLACED]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PREPARING]: [ORDER_STATUS.READY, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.READY]: [ORDER_STATUS.OUT_FOR_DELIVERY],
+  [ORDER_STATUS.PREPARING]: [ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.CANCELLED],
+  // Allow legacy "ready" orders to continue without a Ready button
+  [ORDER_STATUS.READY]: [ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.OUT_FOR_DELIVERY]: [ORDER_STATUS.DELIVERED],
   [ORDER_STATUS.DELIVERED]: [],
   [ORDER_STATUS.CANCELLED]: [],
@@ -49,8 +50,7 @@ export function nextOwnerStatuses(from) {
 
 export function getTimelineIndex(status) {
   if (status === ORDER_STATUS.CANCELLED) return -1;
-  // Kitchen "ready" is hidden from customers — keep them on Preparing
-  // until the order moves to out_for_delivery.
+  // Legacy ready → show as Preparing on customer timeline
   if (status === ORDER_STATUS.READY) {
     return ORDER_TIMELINE.indexOf(ORDER_STATUS.PREPARING);
   }

@@ -20,6 +20,97 @@
   border-radius: 999px;
 }
 
+.owner-mobile-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--color-primary);
+  border-radius: 999px;
+}
+
+.admin-user-phone {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.owner-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.owner-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.owner-profile-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.12);
+  color: var(--color-primary);
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.owner-profile-name {
+  display: block;
+  font-size: 17px;
+}
+
+.owner-profile-role {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.owner-profile-phone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-profile-phone > span {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.owner-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.owner-profile-link:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.owner-profile-link:first-child {
+  padding-top: 0;
+}
+
+.owner-profile-logout {
+  margin-top: 4px;
+}
+
 .owner-shell .admin-nav-link {
   display: flex;
   align-items: center;
@@ -381,7 +472,7 @@
 }
 
 .owner-settings-form {
-  padding: 20px;
+  padding: 0;
 }
 
 .owner-settings-field {
@@ -398,6 +489,76 @@
   max-height: 160px;
   object-fit: cover;
   border-radius: 12px;
+}
+
+.owner-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.owner-settings-page .owner-alert {
+  margin: 0;
+}
+
+.owner-settings-section {
+  padding: 18px;
+}
+
+.owner-settings-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.owner-settings-section-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.owner-settings-section-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.owner-settings-section-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.owner-delivery-radius {
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+
+.owner-delivery-radius .form-label {
+  margin-bottom: 2px;
+}
+
+.owner-radius-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-radius-chips .chip {
+  cursor: pointer;
+}
+
+.owner-custom-radius {
+  margin-top: 10px;
+  max-width: 200px;
+}
+
+.owner-settings-section .form-hint {
+  margin: 10px 0 0;
 }
 
 @media (max-width: 900px) {
@@ -670,10 +831,6 @@
   .owner-dashboard-links .btn {
     width: 100%;
     text-align: center;
-  }
-
-  .owner-settings-form {
-    padding: 16px;
   }
 }
 

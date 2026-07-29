@@ -238,6 +238,60 @@ export function AuthProvider({ children }) {
     return { ok: true };
   }
 
+  async function updateProfile({ fullName, phone }) {
+    setAuthError('');
+    if (!user?.id) {
+      const msg = 'Login required';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    const name = String(fullName || '').trim();
+    const digits = normalizePhone(phone);
+    if (name.length < 2) {
+      const msg = 'Enter your full name';
+      setAuthError(msg);
+      return { error: msg };
+    }
+    if (digits.length !== 10) {
+      const msg = 'Enter a valid 10-digit mobile number';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        full_name: name,
+        phone: digits,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+      .is('deleted_at', null)
+      .select('id, full_name, phone')
+      .single();
+
+    if (error) {
+      const msg =
+        error.code === '23505'
+          ? 'This phone number is already in use'
+          : error.message || 'Could not update profile';
+      setAuthError(msg);
+      return { error: msg };
+    }
+
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            fullName: data.full_name || name,
+            phone: normalizePhone(data.phone || digits),
+          }
+        : prev,
+    );
+    return { ok: true, user: data };
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     setUser(null);
@@ -259,6 +313,7 @@ export function AuthProvider({ children }) {
       verifyOtp,
       loginWithPassword,
       savePassword,
+      updateProfile,
       logout,
       syncSession,
       normalizePhone,

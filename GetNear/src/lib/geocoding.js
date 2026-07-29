@@ -334,3 +334,95 @@ export async function reverseGeocodeAddress(lat, lng, { useCache = true } = {}) 
   writeCache(latitude, longitude, result);
   return result;
 }
+
+/**
+ * Forward-search places by text (Google Geocoding → Nominatim).
+ * Used for map search; selected result becomes the delivery pin.
+ * @returns {Promise<Array<ReturnType<typeof normalizeGeocodeResult> & { label: string }>>}
+ */
+export async function searchAddressSuggestions(query, { limit = 6 } = {}) {
+  const q = String(query || '').trim();
+  if (q.length < 3) return [];
+
+  try {
+    const google = await searchAddressGoogle(q, limit);
+    if (google.length) return google;
+  } catch {
+    // fall through
+  }
+
+  return searchAddressNominatim(q, limit);
+}
+
+async function searchAddressGoogle(query, limit) {
+  const key = googleMapsKey();
+  if (!key) return [];
+
+  const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
+  url.searchParams.set('address', query);
+  url.searchParams.set('components', 'country:IN');
+  url.searchParams.set('key', key);
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('region', 'in');
+
+  const res = await fetchWithRetry(url.toString());
+  const data = await res.json();
+
+  if (data.status === 'ZERO_RESULTS') return [];
+  if (data.status !== 'OK' || !data.results?.length) {
+    throw new Error(data.error_message || `Google geocoding: ${data.status}`);
+  }
+
+  return data.results.slice(0, limit).map((result) => {
+    const loc = result.geometry?.location || {};
+    const lat = Number(loc.lat);
+    const lng = Number(loc.lng);
+    const mapped = mapGoogleResult(result, lat, lng, null);
+    return {
+      ...mapped,
+      label: result.formatted_address || mapped.formattedAddress,
+    };
+  }).filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+}
+
+async function searchAddressNominatim(query, limit) {
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('q', query);
+  url.searchParams.set('countrycodes', 'in');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('limit', String(limit));
+
+  const res = await fetchWithRetry(url.toString(), {
+    headers: {
+      Accept: 'application/json',
+      'Accept-Language': 'en',
+    },
+  });
+  const data = await res.json();
+  if (!Array.isArray(data)) return [];
+
+  return data.map((item) => {
+    const a = item.address || {};
+    const lat = Number(item.lat);
+    const lng = Number(item.lon);
+    const house = [a.house_number, a.building].filter(Boolean).join(', ');
+    const road = a.road || a.pedestrian || a.path || '';
+    const mapped = normalizeGeocodeResult({
+      formattedAddress: item.display_name || '',
+      line1: house || road || a.neighbourhood || '',
+      line2: a.suburb || a.neighbourhood || a.city_district || '',
+      city: a.city || a.town || a.village || a.municipality || a.state_district || '',
+      state: a.state || '',
+      pincode: a.postcode || '',
+      country: a.country || 'India',
+      lat,
+      lng,
+      provider: 'nominatim',
+    });
+    return {
+      ...mapped,
+      label: item.display_name || mapped.formattedAddress,
+    };
+  }).filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+}

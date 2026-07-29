@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { IconBack, IconTicket } from '../../components/ui/Icons';
 import { QuantityControl } from '../../components/ui/Shared';
+import { isStoreOpen } from '../../domain/restaurant';
 import {
   CartDeliverySection,
   readSelectedAddressId,
@@ -36,6 +37,9 @@ export default function CartPage() {
     removeItem,
   } = useCart();
 
+  const storeOpen = isStoreOpen(business);
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   const handleSelectAddress = useCallback((id) => {
     setSelectedAddressId(id || '');
     writeSelectedAddressId(id || '');
@@ -51,6 +55,7 @@ export default function CartPage() {
   }
 
   function handleCheckout() {
+    if (!storeOpen) return;
     if (user && !selectedAddressId) {
       setAddOpen(true);
       return;
@@ -59,44 +64,87 @@ export default function CartPage() {
     navigate('/checkout', { state: { addressId: selectedAddressId || undefined } });
   }
 
+  if (!items.length) {
+    return (
+      <div className="app-shell cart-shell animate-in">
+        <main className="page-container cart-page">
+          <div className="cart-topbar">
+            <Link to={business?.id ? `/business/${business.id}` : '/'} className="back-btn" aria-label="Go back">
+              <IconBack />
+            </Link>
+            <div className="cart-topbar-copy">
+              <h1>Your cart</h1>
+              <p>Nothing here yet</p>
+            </div>
+          </div>
+          <div className="cart-empty">
+            <strong>Cart is empty</strong>
+            <p>Add something tasty from a nearby restaurant.</p>
+            <Link to="/" className="btn btn-primary">
+              Browse restaurants
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="app-shell animate-in">
+    <div className="app-shell cart-shell animate-in">
       <main className="page-container cart-page">
-        <div className="page-header">
+        <div className="cart-topbar">
           <Link to={`/business/${business?.id}`} className="back-btn" aria-label="Go back">
             <IconBack />
           </Link>
-          <h1>Your cart</h1>
+          <div className="cart-topbar-copy">
+            <h1>Your cart</h1>
+            <p>
+              {business?.name || 'Restaurant'}
+              {itemCount > 0 ? ` · ${itemCount} item${itemCount === 1 ? '' : 's'}` : ''}
+            </p>
+          </div>
         </div>
 
-        <p className="cart-restaurant">{business?.name?.toUpperCase()}</p>
+        {!storeOpen && (
+          <div className="cart-alert cart-alert--closed" role="status">
+            <strong>{business?.name || 'This store'} is closed</strong>
+            <p>You can&apos;t checkout until the store opens again.</p>
+          </div>
+        )}
 
-        <CartDeliverySection
-          selectedAddressId={selectedAddressId}
-          onSelectAddressId={handleSelectAddress}
-          addOpen={addOpen}
-          onAddOpenChange={setAddOpen}
-        />
+        <section className="cart-panel cart-panel--delivery">
+          <CartDeliverySection
+            selectedAddressId={selectedAddressId}
+            onSelectAddressId={handleSelectAddress}
+            addOpen={addOpen}
+            onAddOpenChange={setAddOpen}
+          />
+        </section>
 
-        <div className="cart-items card">
-          {items.map((item) => (
-            <div key={item.id} className="cart-item">
-              <div>
-                <h3>{item.name}</h3>
-                <span className="cart-item-price">₹{item.price}</span>
+        <section className="cart-panel">
+          <p className="cart-panel-label">Items</p>
+          <div className="cart-items">
+            {items.map((item) => (
+              <div key={item.id} className="cart-item">
+                <div className="cart-item-info">
+                  <h3>{item.name}</h3>
+                  <span className="cart-item-price">₹{item.price}</span>
+                </div>
+                <QuantityControl
+                  quantity={item.quantity}
+                  onAdd={() => addItem(item.id)}
+                  onRemove={() => removeItem(item.id)}
+                />
               </div>
-              <QuantityControl
-                quantity={item.quantity}
-                onAdd={() => addItem(item.id)}
-                onRemove={() => removeItem(item.id)}
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
 
-        <div className="coupon-card card">
+        <section className="cart-panel cart-panel--coupon">
           <div className="coupon-card-title">
-            <IconTicket size={20} />
+            <span className="coupon-card-icon" aria-hidden="true">
+              <IconTicket size={18} />
+            </span>
             <span>Apply coupon</span>
           </div>
           {coupon ? (
@@ -128,48 +176,60 @@ export default function CartPage() {
             </form>
           )}
           {couponError && <p className="coupon-error">{couponError}</p>}
-        </div>
+        </section>
 
-        <div className="bill-card card">
-          <div className="price-row">
-            <span>Item total</span>
-            <span>₹{subtotal}</span>
-          </div>
-          {discount > 0 && (
+        <section className="cart-panel cart-panel--bill">
+          <p className="cart-panel-label">Bill summary</p>
+          <div className="bill-card">
             <div className="price-row">
-              <span>Discount</span>
-              <span className="discount-amount">−₹{discount}</span>
+              <span>Item total</span>
+              <span>₹{subtotal}</span>
             </div>
-          )}
-          {coupon?.deliveryDiscount > 0 && (
+            {discount > 0 && (
+              <div className="price-row">
+                <span>Discount</span>
+                <span className="discount-amount">−₹{discount}</span>
+              </div>
+            )}
+            {coupon?.deliveryDiscount > 0 && (
+              <div className="price-row">
+                <span>Delivery discount</span>
+                <span className="discount-amount">−₹{coupon.deliveryDiscount}</span>
+              </div>
+            )}
             <div className="price-row">
-              <span>Delivery discount</span>
-              <span className="discount-amount">−₹{coupon.deliveryDiscount}</span>
+              <span>Delivery fee</span>
+              <span>₹{deliveryFee}</span>
             </div>
-          )}
-          <div className="price-row">
-            <span>Delivery fee</span>
-            <span>₹{deliveryFee}</span>
+            <div className="price-row">
+              <span>Taxes</span>
+              <span>₹{taxes}</span>
+            </div>
+            <div className="price-row price-row--total">
+              <span>Total</span>
+              <span className="amount">₹{total}</span>
+            </div>
           </div>
-          <div className="price-row">
-            <span>Taxes</span>
-            <span>₹{taxes}</span>
-          </div>
-          <div className="price-row price-row--total">
-            <span>Total</span>
-            <span className="amount">₹{total}</span>
-          </div>
-        </div>
+        </section>
 
-        <button
-          type="button"
-          className="btn btn-primary btn-full checkout-btn"
-          onClick={handleCheckout}
-        >
-          {user && !selectedAddressId
-            ? 'Add delivery location to continue'
-            : 'Proceed to checkout'}
-        </button>
+        <div className="cart-checkout-bar">
+          <div className="cart-checkout-meta">
+            <span>To pay</span>
+            <strong>₹{total}</strong>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary checkout-btn"
+            onClick={handleCheckout}
+            disabled={!storeOpen}
+          >
+            {!storeOpen
+              ? 'Store closed'
+              : user && !selectedAddressId
+                ? 'Add location'
+                : 'Checkout'}
+          </button>
+        </div>
       </main>
     </div>
   );
