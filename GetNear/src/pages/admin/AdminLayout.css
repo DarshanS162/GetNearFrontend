@@ -378,10 +378,46 @@
   .admin-nav {
     flex-direction: row;
     overflow-x: auto;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .admin-sidebar-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .admin-sidebar-footer .admin-user-label {
+    margin: 0;
+    flex: 1;
+    min-width: 120px;
   }
 
   .admin-main {
     padding: var(--space-4);
+    max-width: none;
+  }
+
+  .admin-page-header h1 {
+    font-size: 22px;
+  }
+
+  .admin-page-header-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .admin-grid {
@@ -389,10 +425,37 @@
   }
 
   .admin-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-modal-backdrop {
+    padding: var(--space-3);
+  }
+
+  .admin-modal {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .admin-modal-actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-modal-actions .btn {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-stat-card strong {
+    font-size: 22px;
   }
 }

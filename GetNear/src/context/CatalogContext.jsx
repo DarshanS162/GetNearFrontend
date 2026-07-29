@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
+  createId,
   mapCategory,
   mapProduct,
   mapRestaurant,
@@ -154,7 +155,7 @@ export function CatalogProvider({ children }) {
     const { data: created, error } = await supabase
       .from('users')
       .insert({
-        auth_user_uuid: crypto.randomUUID(),
+        auth_user_uuid: createId(),
         role_id: role.id,
         full_name: ownerName,
         phone: digits,
@@ -276,28 +277,70 @@ export function CatalogProvider({ children }) {
     await refreshCatalog();
   }
 
-  async function addProduct(data) {
-    let categoryId = data.categoryId;
+  async function ensureCategoryId(restaurantId, categoryId, newCategoryName) {
+    if (newCategoryName?.trim()) {
+      const name = newCategoryName.trim();
+      const catSlug = slugify(name) || `cat-${Date.now()}`;
 
-    if (data.newCategoryName?.trim()) {
-      const catSlug = slugify(data.newCategoryName) || `cat-${Date.now()}`;
+      const existingLocal = menuCategories.find(
+        (c) =>
+          c.restaurantId === restaurantId &&
+          (slugify(c.name) === catSlug || c.name.trim().toLowerCase() === name.toLowerCase()),
+      );
+      if (existingLocal) return existingLocal.id;
+
+      const { data: existingRows, error: lookupError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .eq('slug', catSlug)
+        .is('deleted_at', null)
+        .limit(1);
+
+      if (lookupError) throw lookupError;
+      if (existingRows?.[0]?.id) return existingRows[0].id;
+
       const { data: cat, error: catError } = await supabase
         .from('categories')
         .insert({
-          restaurant_id: data.businessId,
-          name: data.newCategoryName.trim(),
+          restaurant_id: restaurantId,
+          name,
           slug: catSlug,
           display_order: 0,
           is_active: true,
         })
-        .select('*')
+        .select('id')
         .single();
 
-      if (catError) throw catError;
-      categoryId = cat.id;
+      if (!catError && cat?.id) return cat.id;
+
+      // Duplicate slug (retry / concurrent create) — reuse existing row
+      if (catError?.code === '23505') {
+        const { data: raced, error: racedError } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('restaurant_id', restaurantId)
+          .eq('slug', catSlug)
+          .is('deleted_at', null)
+          .limit(1)
+          .maybeSingle();
+        if (racedError) throw racedError;
+        if (raced?.id) return raced.id;
+      }
+
+      throw catError || new Error('Could not create category');
     }
 
-    if (!categoryId) throw new Error('Category is required');
+    if (categoryId) return categoryId;
+    throw new Error('Category is required');
+  }
+
+  async function addProduct(data) {
+    const categoryId = await ensureCategoryId(
+      data.businessId,
+      data.categoryId,
+      data.newCategoryName,
+    );
 
     const price = Number(data.price);
     const mrp = Number(data.mrp) || price;
@@ -341,27 +384,11 @@ export function CatalogProvider({ children }) {
   }
 
   async function updateProduct(id, data) {
-    let categoryId = data.categoryId;
-
-    if (data.newCategoryName?.trim()) {
-      const catSlug = slugify(data.newCategoryName) || `cat-${Date.now()}`;
-      const { data: cat, error: catError } = await supabase
-        .from('categories')
-        .insert({
-          restaurant_id: data.businessId,
-          name: data.newCategoryName.trim(),
-          slug: catSlug,
-          display_order: 0,
-          is_active: true,
-        })
-        .select('*')
-        .single();
-
-      if (catError) throw catError;
-      categoryId = cat.id;
-    }
-
-    if (!categoryId) throw new Error('Category is required');
+    const categoryId = await ensureCategoryId(
+      data.businessId,
+      data.categoryId,
+      data.newCategoryName,
+    );
 
     const price = Number(data.price);
     const mrp = Number(data.mrp) || price;
@@ -385,6 +412,36 @@ export function CatalogProvider({ children }) {
     if (data.imageUrl) payload.primary_image_url = data.imageUrl;
 
     const { error } = await supabase.from('products').update(payload).eq('id', id);
+    if (error) throw error;
+    await refreshCatalog();
+  }
+
+  async function addCategory(restaurantId, name) {
+    const trimmed = String(name || '').trim();
+    if (!restaurantId) throw new Error('Restaurant is required');
+    if (!trimmed) throw new Error('Category name is required');
+
+    const id = await ensureCategoryId(restaurantId, null, trimmed);
+    await refreshCatalog();
+    return id;
+  }
+
+  async function deleteCategory(categoryId) {
+    if (!categoryId) throw new Error('Category is required');
+
+    const inUse = products.some((p) => p.categoryId === categoryId);
+    if (inUse) {
+      throw new Error('Move or delete menu items in this category first');
+    }
+
+    const { error } = await supabase
+      .from('categories')
+      .update({
+        deleted_at: new Date().toISOString(),
+        is_active: false,
+      })
+      .eq('id', categoryId);
+
     if (error) throw error;
     await refreshCatalog();
   }
@@ -423,6 +480,8 @@ export function CatalogProvider({ children }) {
     addProduct,
     updateProduct,
     deleteProduct,
+    addCategory,
+    deleteCategory,
     slugify,
   };
 

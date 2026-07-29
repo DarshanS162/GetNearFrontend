@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createId } from './utils';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -20,7 +21,7 @@ export async function uploadImage(bucket, file, folder = 'uploads') {
   }
 
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const path = `${folder}/${crypto.randomUUID()}.${ext || 'jpg'}`;
+  const path = `${folder}/${createId()}.${ext || 'jpg'}`;
 
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: '3600',

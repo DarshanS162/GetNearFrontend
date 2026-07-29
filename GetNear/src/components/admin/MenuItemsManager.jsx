@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
 import ImageField from '../ui/ImageField';
 import { uploadImage } from '../../lib/storage';
+import CategoryManagerModal from './CategoryManagerModal';
+import './MenuItemsManager.css';
 
 const emptyForm = {
   businessId: '',
   categoryId: '',
-  newCategoryName: '',
   name: '',
   description: '',
   price: '',
@@ -21,7 +22,6 @@ function itemToForm(item, businessId) {
   return {
     businessId: item.businessId || businessId || '',
     categoryId: item.categoryId || '',
-    newCategoryName: '',
     name: item.name || '',
     description: item.description || '',
     price: String(item.price || ''),
@@ -60,12 +60,12 @@ export default function MenuItemsManager({
   const defaultBusinessId = lockedBusinessId || businesses[0]?.id || '';
 
   const [formOpen, setFormOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [existingImageUrl, setExistingImageUrl] = useState('');
   const [form, setForm] = useState({ ...emptyForm, businessId: defaultBusinessId });
   const [filterRestaurant, setFilterRestaurant] = useState(lockedBusinessId || '');
   const [toast, setToast] = useState('');
-  const [useNewCategory, setUseNewCategory] = useState(false);
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState(null);
 
@@ -82,6 +82,11 @@ export default function MenuItemsManager({
     ? scopedProducts.filter((p) => p.businessId === filterRestaurant)
     : scopedProducts;
 
+  const categoryManagerBusinessId =
+    lockedBusinessId ||
+    (formOpen ? form.businessId : filterRestaurant) ||
+    defaultBusinessId;
+
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
@@ -91,7 +96,6 @@ export default function MenuItemsManager({
     const businessId = lockedBusinessId || defaultBusinessId;
     setEditingId(null);
     setForm({ ...emptyForm, businessId });
-    setUseNewCategory(false);
     setImageFile(null);
     setExistingImageUrl('');
     setFormOpen(true);
@@ -100,7 +104,6 @@ export default function MenuItemsManager({
   function openEdit(item) {
     setEditingId(item.id);
     setForm(itemToForm(item, lockedBusinessId));
-    setUseNewCategory(false);
     setImageFile(null);
     setExistingImageUrl(item.imageUrl || '');
     setFormOpen(true);
@@ -111,7 +114,17 @@ export default function MenuItemsManager({
     setEditingId(null);
     setImageFile(null);
     setExistingImageUrl('');
-    setUseNewCategory(false);
+  }
+
+  function openCategoryManager() {
+    setCategoryModalOpen(true);
+  }
+
+  function handleCategoryAdded(categoryId) {
+    if (formOpen && categoryId) {
+      setForm((prev) => ({ ...prev, categoryId }));
+    }
+    showToast('Category saved');
   }
 
   function handleChange(e) {
@@ -126,9 +139,27 @@ export default function MenuItemsManager({
   async function handleSubmit(e) {
     e.preventDefault();
     const businessId = lockedBusinessId || form.businessId;
-    if (!form.name.trim() || !businessId || !form.price) return;
-    if (!useNewCategory && !form.categoryId) return;
-    if (useNewCategory && !form.newCategoryName.trim()) return;
+
+    if (!businessId) {
+      showToast('Restaurant is required');
+      return;
+    }
+    if (!form.name.trim()) {
+      showToast('Item name is required');
+      return;
+    }
+    if (!form.price) {
+      showToast('Selling price is required');
+      return;
+    }
+    if (!form.categoryId) {
+      showToast(
+        categoriesForRestaurant.length === 0
+          ? 'Add a category first'
+          : 'Select a category for this item',
+      );
+      return;
+    }
 
     setSaving(true);
     try {
@@ -140,8 +171,7 @@ export default function MenuItemsManager({
       const payload = {
         ...form,
         businessId,
-        categoryId: useNewCategory ? undefined : form.categoryId,
-        newCategoryName: useNewCategory ? form.newCategoryName : undefined,
+        categoryId: form.categoryId,
         imageUrl,
       };
 
@@ -177,9 +207,19 @@ export default function MenuItemsManager({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={openAdd} disabled={!canAdd}>
-          + Add menu item
-        </button>
+        <div className="menu-header-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={openCategoryManager}
+            disabled={!canAdd}
+          >
+            Manage categories
+          </button>
+          <button type="button" className="btn btn-primary" onClick={openAdd} disabled={!canAdd}>
+            + Add menu item
+          </button>
+        </div>
       </div>
 
       {showRestaurantPicker && !lockedBusinessId && (
@@ -305,59 +345,63 @@ export default function MenuItemsManager({
                 </div>
               )}
 
-              {lockedBusinessId && (
-                <div className="form-group">
-                  <label className="form-label">Your restaurant</label>
-                  <p className="form-input" style={{ margin: 0, background: 'var(--color-bg)' }}>
-                    {getBusinessName(lockedBusinessId)}
-                  </p>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={useNewCategory}
-                    onChange={(e) => setUseNewCategory(e.target.checked)}
-                  />
-                  Create new category
-                </label>
-              </div>
-
-              {useNewCategory ? (
-                <div className="form-group">
-                  <label className="form-label" htmlFor="newCategoryName">New category name *</label>
-                  <input
-                    id="newCategoryName"
-                    name="newCategoryName"
-                    className="form-input"
-                    value={form.newCategoryName}
-                    onChange={handleChange}
-                    placeholder="Thalis"
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label className="form-label" htmlFor="categoryId">Category *</label>
-                  <select
-                    id="categoryId"
-                    name="categoryId"
-                    className="form-input"
-                    value={form.categoryId}
-                    onChange={handleChange}
-                    required={!useNewCategory}
+              <div className="form-group menu-category-field">
+                <div className="menu-category-field-head">
+                  <label className="form-label" id="category-label">
+                    Category *
+                  </label>
+                  <button
+                    type="button"
+                    className="menu-category-create-link"
+                    onClick={openCategoryManager}
                   >
-                    {categoriesForRestaurant.length === 0 ? (
-                      <option value="">Create a category first</option>
-                    ) : (
-                      categoriesForRestaurant.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))
-                    )}
-                  </select>
+                    Manage categories
+                  </button>
                 </div>
-              )}
+
+                {categoriesForRestaurant.length === 0 ? (
+                  <div className="menu-category-empty">
+                    <p className="menu-category-empty-title">No categories yet</p>
+                    <p className="form-hint">
+                      Add menu sections first, then pick one for this item.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={openCategoryManager}
+                    >
+                      Manage categories
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="menu-category-chips"
+                    role="listbox"
+                    aria-labelledby="category-label"
+                    aria-required="true"
+                  >
+                    {categoriesForRestaurant.map((c) => {
+                      const active = form.categoryId === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          className={`chip ${active ? 'chip-active' : ''}`}
+                          onClick={() => setForm((prev) => ({ ...prev, categoryId: c.id }))}
+                        >
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!form.categoryId && categoriesForRestaurant.length > 0 && (
+                  <p className="form-hint menu-category-hint">Select a category for this item.</p>
+                )}
+              </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="name">Item name *</label>
@@ -369,7 +413,7 @@ export default function MenuItemsManager({
                 <textarea id="description" name="description" className="form-input" rows={2} value={form.description} onChange={handleChange} style={{ resize: 'vertical' }} />
               </div>
 
-              <div className="form-row">
+              <div className="form-row menu-price-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="price">Selling price (₹) *</label>
                   <input id="price" name="price" type="number" min="1" className="form-input" value={form.price} onChange={handleChange} required />
@@ -432,6 +476,16 @@ export default function MenuItemsManager({
             </form>
           </div>
         </div>
+      )}
+
+      {categoryModalOpen && (
+        <CategoryManagerModal
+          businessId={lockedBusinessId || categoryManagerBusinessId || undefined}
+          businesses={allowedBusinesses}
+          showRestaurantPicker={showRestaurantPicker && !lockedBusinessId}
+          onClose={() => setCategoryModalOpen(false)}
+          onCategoryAdded={handleCategoryAdded}
+        />
       )}
 
       {toast && <div className="admin-toast">{toast}</div>}

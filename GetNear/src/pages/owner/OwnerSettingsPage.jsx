@@ -124,36 +124,36 @@ export default function OwnerSettingsPage() {
       </div>
 
       {pending && (
-        <div className="card" style={{ padding: 16, marginBottom: 16, background: 'rgba(255,159,28,0.1)' }}>
+        <div className="owner-alert owner-alert--warn" style={{ marginBottom: 16 }}>
           Your application is waiting for admin approval. Customers cannot see your store yet.
         </div>
       )}
 
       {rejected && (
-        <div className="card" style={{ padding: 16, marginBottom: 16, color: '#ef4444' }}>
+        <div className="owner-alert owner-alert--danger" style={{ marginBottom: 16 }}>
           Application rejected{restaurant.rejectionReason ? `: ${restaurant.rejectionReason}` : '.'}
           {' '}You can contact support or re-apply with a different account.
         </div>
       )}
 
       {message && (
-        <div className="card" style={{ padding: 12, marginBottom: 16, color: 'var(--color-primary)' }}>
+        <div className="owner-alert owner-alert--success" style={{ marginBottom: 16 }}>
           {message}
         </div>
       )}
       {error && (
-        <div className="card" style={{ padding: 12, marginBottom: 16, color: '#ef4444' }}>
+        <div className="owner-alert owner-alert--danger" style={{ marginBottom: 16 }}>
           {error}
         </div>
       )}
 
-      <form className="card" style={{ padding: 20 }} onSubmit={handleSave}>
-        <label className="form-label" style={{ display: 'block', marginBottom: 12 }}>
+      <form className="card owner-settings-form" onSubmit={handleSave}>
+        <label className="form-label owner-settings-field">
           Store name *
           <input name="name" className="form-input" value={form.name} onChange={handleChange} required />
         </label>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div className="owner-form-grid">
           <label className="form-label">
             Cuisine
             <input name="type" className="form-input" value={form.type} onChange={handleChange} />
@@ -164,12 +164,12 @@ export default function OwnerSettingsPage() {
           </label>
         </div>
 
-        <label className="form-label" style={{ display: 'block', marginBottom: 12 }}>
+        <label className="form-label owner-settings-field">
           Description
           <textarea name="description" className="form-input" rows={3} value={form.description} onChange={handleChange} />
         </label>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div className="owner-form-grid">
           <label className="form-label">
             Phone
             <input name="contactPhone" className="form-input" value={form.contactPhone} onChange={handleChange} />
@@ -180,7 +180,7 @@ export default function OwnerSettingsPage() {
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div className="owner-form-grid">
           <label className="form-label">
             Delivery time (min)
             <input name="deliveryTime" className="form-input" value={form.deliveryTime} onChange={handleChange} />
@@ -191,7 +191,7 @@ export default function OwnerSettingsPage() {
           </label>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div className="owner-form-grid">
           <label className="form-label">
             GST
             <input name="gstNumber" className="form-input" value={form.gstNumber} onChange={handleChange} />
@@ -203,16 +203,12 @@ export default function OwnerSettingsPage() {
         </div>
 
         {form.bannerUrl && !imageFile && (
-          <div style={{ marginBottom: 12 }}>
-            <img
-              src={form.bannerUrl}
-              alt=""
-              style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 12 }}
-            />
+          <div className="owner-settings-banner">
+            <img src={form.bannerUrl} alt="" />
           </div>
         )}
 
-        <div style={{ marginBottom: 16 }}>
+        <div className="owner-settings-field">
           <ImageField
             id="owner-banner"
             label="Banner image"
@@ -221,7 +217,7 @@ export default function OwnerSettingsPage() {
           />
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={saving}>
+        <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
           {saving ? 'Saving…' : 'Save settings'}
         </button>
       </form>
