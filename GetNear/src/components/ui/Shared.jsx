@@ -62,3 +62,35 @@ export function StickyCartBar({ itemCount, total, to = '/cart' }) {
     </Link>
   );
 }
+
+/** Compact fixed cart chip — bottom-right */
+export function FloatingCartFab({ itemCount, total, to = '/cart', className = '' }) {
+  if (itemCount === 0) return null;
+
+  const label =
+    total != null
+      ? `Show my cart, ${itemCount} items, ₹${total}`
+      : `Show my cart, ${itemCount} items`;
+
+  return (
+    <Link
+      to={to}
+      className={`floating-cart-fab${className ? ` ${className}` : ''}`}
+      aria-label={label}
+    >
+      <span className="floating-cart-fab-icon" aria-hidden="true">
+        <IconCart size={18} />
+        <span key={itemCount} className="floating-cart-fab-count">
+          {itemCount > 99 ? '99+' : itemCount}
+        </span>
+      </span>
+      <span className="floating-cart-fab-copy">
+        <strong>My cart</strong>
+        <span>
+          {total != null ? `  ₹${total}` : ''}
+        </span>
+      </span>
+      <IconChevron size={16} />
+    </Link>
+  );
+}

@@ -19,10 +19,14 @@ export function isCustomerVisible(restaurant) {
   return restaurant?.businessStatus === BUSINESS_STATUS.ACTIVE;
 }
 
-/** True when the store can accept new orders right now. */
-export function isStoreOpen(restaurant) {
-  return (
+/** True when the store can accept new orders right now.
+ *  `scheduleOpen` optional: from operating_hours (null = unknown / ignore).
+ */
+export function isStoreOpen(restaurant, { scheduleOpen = null } = {}) {
+  const base =
     restaurant?.businessStatus === BUSINESS_STATUS.ACTIVE &&
-    restaurant?.isActive !== false
-  );
+    restaurant?.isActive !== false;
+  if (!base) return false;
+  if (scheduleOpen === false) return false;
+  return true;
 }

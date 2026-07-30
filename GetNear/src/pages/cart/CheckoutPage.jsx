@@ -8,7 +8,7 @@ import { IconBack, IconLocation, IconUser, IconPhone } from '../../components/ui
 import { formatAddressLine } from '../../domain/address';
 import { isStoreOpen } from '../../domain/restaurant';
 import { useAddresses } from '../../presentation/hooks/useAddresses';
-import { orderUseCases } from '../../application/container';
+import { orderUseCases, branchRepository, addressRepository } from '../../application/container';
 import {
   readSelectedAddressId,
   writeSelectedAddressId,
@@ -44,6 +44,8 @@ function CheckoutPageInner() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [toast, setToast] = useState('');
+  const [radiusError, setRadiusError] = useState('');
+  const [radiusChecking, setRadiusChecking] = useState(false);
 
   useEffect(() => {
     if (selectedAddressId) {
@@ -61,6 +63,32 @@ function CheckoutPageInner() {
 
   const selectedHasPin =
     selectedAddress?.latitude != null && selectedAddress?.longitude != null;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkRadius() {
+      setRadiusError('');
+      if (!businessId || !selectedAddress?.id || !selectedHasPin) return;
+      setRadiusChecking(true);
+      try {
+        const branchId = await branchRepository.ensureMainBranchId(businessId);
+        await addressRepository.validateDelivery(selectedAddress.id, branchId);
+        if (!cancelled) setRadiusError('');
+      } catch (err) {
+        if (!cancelled) {
+          setRadiusError(
+            err.message || 'This address is outside the delivery area for this store.',
+          );
+        }
+      } finally {
+        if (!cancelled) setRadiusChecking(false);
+      }
+    }
+    checkRadius();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, selectedAddress?.id, selectedHasPin]);
 
   function showToast(msg) {
     setToast(msg);
@@ -82,6 +110,10 @@ function CheckoutPageInner() {
     }
     if (!selectedHasPin) {
       showToast('Selected address needs a map pin. Edit it under Saved addresses.');
+      return;
+    }
+    if (radiusError) {
+      showToast(radiusError);
       return;
     }
 
@@ -176,6 +208,16 @@ function CheckoutPageInner() {
                       This address has no map pin. Update it before ordering.
                     </p>
                   )}
+                  {radiusChecking && (
+                    <p className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+                      Checking delivery area…
+                    </p>
+                  )}
+                  {radiusError && (
+                    <p className="form-error" style={{ marginTop: 6 }}>
+                      {radiusError}
+                    </p>
+                  )}
                 </>
               )}
               {!addressesLoading && !selectedAddress && (
@@ -240,7 +282,10 @@ function CheckoutPageInner() {
           <div className="payment-list">
             <div className="payment-option card payment-option--active">
               <span className="payment-icon">💵</span>
-              <span className="payment-label">Cash on delivery</span>
+              <div className="payment-copy">
+                <span className="payment-label">Cash on delivery</span>
+                <span className="payment-hint">Pay ₹{total} in cash when your order arrives</span>
+              </div>
               <span className="badge badge-recommended">AVAILABLE</span>
             </div>
           </div>
@@ -273,9 +318,12 @@ function CheckoutPageInner() {
           </div>
           <div className="divider-dashed" />
           <div className="price-row price-row--total">
-            <span>Total payable</span>
+            <span>Pay on delivery</span>
             <span className="amount">₹{total}</span>
           </div>
+          <p className="checkout-cod-note">
+            You&apos;ll pay ₹{total} in cash when your order is delivered.
+          </p>
         </div>
 
         {toast && <div className="admin-toast checkout-toast">{toast}</div>}
@@ -284,13 +332,22 @@ function CheckoutPageInner() {
           type="button"
           className="btn btn-primary btn-full place-order-btn"
           onClick={handlePlaceOrder}
-          disabled={placing || !storeOpen || !selectedAddress || !selectedHasPin}
+          disabled={
+            placing ||
+            !storeOpen ||
+            !selectedAddress ||
+            !selectedHasPin ||
+            Boolean(radiusError) ||
+            radiusChecking
+          }
         >
           {!storeOpen
             ? 'Store closed'
-            : placing
+            : radiusError
+              ? 'Outside delivery area'
+              : placing
               ? 'Placing order…'
-              : `Place order · ₹${total}`}
+              : `Place COD order · ₹${total}`}
         </button>
       </main>
     </div>

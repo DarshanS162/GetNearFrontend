@@ -65,3 +65,8 @@ export function generateOrderNumber(date = new Date()) {
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `GN-${y}${m}${d}-${suffix}`;
 }
+
+/** 4-digit handover PIN for delivery verification (1000–9999). */
+export function generateDeliveryPin() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}

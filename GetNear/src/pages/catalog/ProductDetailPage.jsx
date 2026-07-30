@@ -2,8 +2,8 @@ import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
-import { IconBack } from '../../components/ui/Icons';
-import { QuantityControl } from '../../components/ui/Shared';
+import { IconBack, IconClock } from '../../components/ui/Icons';
+import { QuantityControl, FloatingCartFab } from '../../components/ui/Shared';
 import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
 import './ProductDetailPage.css';
 
@@ -12,7 +12,7 @@ export default function ProductDetailPage() {
   const { getProduct, getBusiness, products } = useCatalog();
   const { isAdmin, user } = useAuth();
   const product = getProduct(id);
-  const { addItem, removeItem, getQuantity } = useCart();
+  const { addItem, removeItem, getQuantity, itemCount, total } = useCart();
   const qty = getQuantity(id);
 
   if (!product) {
@@ -38,22 +38,34 @@ export default function ProductDetailPage() {
   const similar = products
     .filter((p) => p.businessId === product.businessId && p.id !== product.id)
     .slice(0, 3);
+  const ingredients = String(product.ingredients || '').trim();
+  const lineTotal = product.price * Math.max(qty, 1);
+  const showCartBar = storeOpen && itemCount > 0;
 
   return (
-    <div className="app-shell animate-in">
-      <main className="page-container product-page">
-        <div className="page-header">
+    <div className="app-shell product-shell animate-in">
+      <main
+        className={`page-container product-page${showCartBar ? ' product-page--with-cart' : ''}${storeOpen ? ' product-page--with-cta' : ''}`}
+      >
+        <div className="product-topbar">
           <Link to={`/business/${product.businessId}`} className="back-btn" aria-label="Go back">
             <IconBack />
           </Link>
-          <h1>{product.name}</h1>
+          <div className="product-topbar-copy">
+            <h1>{product.name}</h1>
+            <p>
+              <Link to={`/business/${product.businessId}`}>{business.name}</Link>
+            </p>
+          </div>
         </div>
 
-        <div className="product-hero card">
+        <div className="product-hero">
           {product.imageUrl ? (
             <img src={product.imageUrl} alt="" className="product-hero-img" />
           ) : (
-            <span className="product-hero-emoji">🍽️</span>
+            <span className="product-hero-emoji" aria-hidden="true">
+              🍽️
+            </span>
           )}
           {product.foodType === 'veg' && (
             <span className="badge badge-success product-veg">Veg</span>
@@ -62,74 +74,99 @@ export default function ProductDetailPage() {
 
         <div className="product-detail">
           <div className="product-price-row">
-            <span className="product-price">₹{product.price}</span>
-            {product.mrp > product.price && (
-              <span className="product-mrp">₹{product.mrp}</span>
+            <div className="product-price-group">
+              <span className="product-price">₹{product.price}</span>
+              {product.mrp > product.price && (
+                <span className="product-mrp">₹{product.mrp}</span>
+              )}
+            </div>
+            {product.prepTime != null && (
+              <span className="product-prep">
+                <IconClock size={14} /> {product.prepTime} min
+              </span>
             )}
-            <span className="product-prep">{product.prepTime} min</span>
           </div>
 
-          <p className="product-desc">{product.description}</p>
+          {product.description?.trim() && (
+            <p className="product-desc">{product.description}</p>
+          )}
 
           {!storeOpen && (
-            <div className="card" style={{ padding: 12, marginBottom: 16, background: 'rgba(239,68,68,0.08)' }}>
+            <div className="product-alert" role="status">
               <strong>{business.name} is closed</strong>
-              <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
-                This store is not accepting orders right now.
-              </p>
+              <p>This store is not accepting orders right now.</p>
             </div>
           )}
 
-          <div className="product-section card">
-            <h3>Ingredients</h3>
-            <p>{product.ingredients}</p>
-          </div>
-
-          <div className="product-actions">
-            {storeOpen ? (
-              <>
-                <QuantityControl
-                  quantity={qty}
-                  onAdd={() => addItem(product.id)}
-                  onRemove={() => removeItem(product.id)}
-                />
-                {qty === 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-full"
-                    onClick={() => addItem(product.id)}
-                  >
-                    Add to cart · ₹{product.price}
-                  </button>
-                )}
-              </>
-            ) : (
-              <button type="button" className="btn btn-secondary btn-full" disabled>
-                Store closed
-              </button>
-            )}
-          </div>
+          {ingredients && (
+            <div className="product-section">
+              <h3>Ingredients</h3>
+              <p>{ingredients}</p>
+            </div>
+          )}
         </div>
 
-        <section className="similar-section">
-          <h2 className="section-title">Similar products</h2>
-          <div className="similar-list">
-            {similar.map((item) => (
-              <Link key={item.id} to={`/product/${item.id}`} className="similar-card card card-interactive">
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt="" className="similar-thumb" />
-                ) : (
-                  <span>🍴</span>
-                )}
-                <div>
-                  <strong>{item.name}</strong>
-                  <span>₹{item.price}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {similar.length > 0 && (
+          <section className="similar-section">
+            <h2 className="section-title">Similar products</h2>
+            <div className="similar-list">
+              {similar.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/product/${item.id}`}
+                  className="similar-card"
+                >
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="similar-thumb" />
+                  ) : (
+                    <span className="similar-fallback" aria-hidden="true">
+                      🍴
+                    </span>
+                  )}
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>₹{item.price}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
+
+      {storeOpen && (
+        <div className="product-cta-bar">
+          {qty === 0 ? (
+            <button
+              type="button"
+              className="btn btn-primary product-cta-add"
+              onClick={() => addItem(product.id)}
+            >
+              Add to cart · ₹{product.price}
+            </button>
+          ) : (
+            <div className="product-cta-active">
+              <div className="product-cta-qty-label">
+                <span>In your cart</span>
+                <strong>₹{lineTotal}</strong>
+              </div>
+              <QuantityControl
+                quantity={qty}
+                onAdd={() => addItem(product.id)}
+                onRemove={() => removeItem(product.id)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCartBar && (
+        <FloatingCartFab
+          itemCount={itemCount}
+          total={total}
+          className="floating-cart-fab--above-cta"
+        />
+      )}
     </div>
   );
 }

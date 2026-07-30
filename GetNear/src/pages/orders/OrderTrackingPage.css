@@ -37,33 +37,38 @@
 
 /* —— Status hero —— */
 .tracking-hero {
-  padding: 20px 18px;
-  margin-bottom: 14px;
-  border-radius: 20px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
   background:
-    linear-gradient(145deg, rgba(255, 107, 53, 0.14) 0%, rgba(255, 255, 255, 0.96) 48%);
+    linear-gradient(145deg, rgba(255, 107, 53, 0.12) 0%, rgba(255, 255, 255, 0.96) 48%);
   border: 1px solid rgba(255, 107, 53, 0.16);
-  box-shadow: 0 10px 28px rgba(255, 107, 53, 0.06);
+  box-shadow: none;
   animation: trackingFadeUp 0.4s ease both;
 }
 
 .tracking-hero.is-success {
   background:
-    linear-gradient(145deg, rgba(34, 197, 94, 0.14) 0%, rgba(255, 255, 255, 0.96) 48%);
+    linear-gradient(145deg, rgba(34, 197, 94, 0.12) 0%, rgba(255, 255, 255, 0.96) 48%);
   border-color: rgba(34, 197, 94, 0.22);
-  box-shadow: 0 10px 28px rgba(34, 197, 94, 0.06);
 }
 
 .tracking-hero.is-danger {
   background:
-    linear-gradient(145deg, rgba(239, 68, 68, 0.12) 0%, rgba(255, 255, 255, 0.96) 48%);
+    linear-gradient(145deg, rgba(239, 68, 68, 0.1) 0%, rgba(255, 255, 255, 0.96) 48%);
   border-color: rgba(239, 68, 68, 0.2);
-  box-shadow: none;
+}
+
+.tracking-hero-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .tracking-hero-kicker {
-  margin: 0 0 6px;
-  font-size: 11px;
+  margin: 0 0 2px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -79,10 +84,10 @@
 }
 
 .tracking-hero h2 {
-  margin: 0 0 6px;
-  font-size: 26px;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .tracking-hero.is-success h2 {
@@ -95,25 +100,45 @@
 
 .tracking-hero-sub {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.45;
+  flex: 1;
+  max-width: 18ch;
+  font-size: 12px;
+  line-height: 1.35;
   color: var(--color-text-secondary);
-  max-width: 34ch;
+  text-align: right;
+}
+
+.tracking-poll-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-error);
 }
 
 .tracking-hero-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(148, 163, 184, 0.5);
+  gap: 4px 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.45);
 }
 
 .tracking-hero-meta span {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 360px) {
+  .tracking-hero-main {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tracking-hero-sub {
+    max-width: none;
+    text-align: left;
+  }
 }
 
 /* —— Timeline —— */
@@ -192,6 +217,55 @@
 
 .tracking-timeline-card.is-success .tracking-live-dot {
   display: none;
+}
+
+/* —— Delivery PIN —— */
+.tracking-pin-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  text-align: left;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.18);
+  box-shadow: none;
+  animation: trackingFadeUp 0.48s ease 0.06s both;
+}
+
+.tracking-pin-kicker {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.tracking-pin-digits {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  color: var(--color-text);
+  padding-left: 0.08em;
+  flex-shrink: 0;
+}
+
+.tracking-pin-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.tracking-pin-help {
+  margin: 0;
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
 }
 
 /* —— Panels —— */

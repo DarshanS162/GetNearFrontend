@@ -7,6 +7,13 @@ const ORDER_SELECT = `
   restaurants ( name )
 `;
 
+/** Strip handover PIN before mapping — owners must not receive it over the wire. */
+function stripDeliveryPin(row) {
+  if (!row) return row;
+  const { delivery_pin: _pin, ...rest } = row;
+  return { ...rest, delivery_pin: null };
+}
+
 /**
  * Order infrastructure adapter — NestJS-portable interface.
  * @implements {import('../../application/ports/OrderRepositoryPort').OrderRepositoryPort}
@@ -65,14 +72,15 @@ export class SupabaseOrderRepository {
         order_id: order.id,
       });
       if (payError) {
-        console.warn('payment insert failed:', payError.message);
+        await this.client.rpc('rollback_placed_order', { p_order_id: order.id });
+        throw new Error('Could not record payment. Please try again.');
       }
     }
 
-    return this.findById(order.id);
+    return this.findById(order.id, { includePin: true });
   }
 
-  async findById(id) {
+  async findById(id, { includePin = false } = {}) {
     const { data, error } = await this.client
       .from('orders')
       .select(ORDER_SELECT)
@@ -81,10 +89,16 @@ export class SupabaseOrderRepository {
       .maybeSingle();
 
     if (error) throw error;
-    return mapOrder(data);
+    if (!data) return null;
+
+    const mapped = mapOrder(stripDeliveryPin(data));
+    if (includePin) {
+      mapped.deliveryPin = (await this.fetchMyDeliveryPin(id)) || '';
+    }
+    return mapped;
   }
 
-  async findByOrderNumber(orderNumber) {
+  async findByOrderNumber(orderNumber, { includePin = false } = {}) {
     const { data, error } = await this.client
       .from('orders')
       .select(ORDER_SELECT)
@@ -93,7 +107,24 @@ export class SupabaseOrderRepository {
       .maybeSingle();
 
     if (error) throw error;
-    return mapOrder(data);
+    if (!data) return null;
+
+    const mapped = mapOrder(stripDeliveryPin(data));
+    if (includePin) {
+      mapped.deliveryPin = (await this.fetchMyDeliveryPin(mapped.id)) || '';
+    }
+    return mapped;
+  }
+
+  async fetchMyDeliveryPin(orderId) {
+    const { data, error } = await this.client.rpc('get_my_order_delivery_pin', {
+      p_order_id: orderId,
+    });
+    if (error) {
+      // Migration may not be applied yet — fall back silently.
+      return '';
+    }
+    return data || '';
   }
 
   async listByCustomerId(customerId) {
@@ -105,7 +136,7 @@ export class SupabaseOrderRepository {
       .order('placed_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(mapOrder);
+    return (data || []).map((row) => mapOrder(stripDeliveryPin(row)));
   }
 
   async listByRestaurantId(restaurantId) {
@@ -117,22 +148,31 @@ export class SupabaseOrderRepository {
       .order('placed_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(mapOrder);
+    // Never expose handover PIN to restaurant owners in list payloads.
+    return (data || []).map((row) => mapOrder(stripDeliveryPin(row)));
   }
 
-  async updateStatus(orderId, orderStatus, extra = {}) {
-    const { data, error } = await this.client
-      .from('orders')
-      .update({
-        order_status: orderStatus,
-        ...extra,
-      })
-      .eq('id', orderId)
-      .is('deleted_at', null)
-      .select(ORDER_SELECT)
-      .single();
+  async advanceStatus({ orderId, nextStatus, cancelledReason = '', deliveryPin = '' }) {
+    const { data, error } = await this.client.rpc('advance_order_status', {
+      p_order_id: orderId,
+      p_next_status: nextStatus,
+      p_cancelled_reason: cancelledReason || null,
+      p_delivery_pin: deliveryPin || null,
+    });
 
     if (error) throw error;
-    return mapOrder(data);
+
+    // RPC returns orders row without joins — reload full aggregate without PIN.
+    return this.findById(orderId, { includePin: false });
+  }
+
+  /** @deprecated Prefer advanceStatus — direct updates are blocked in DB. */
+  async updateStatus(orderId, orderStatus, extra = {}) {
+    return this.advanceStatus({
+      orderId,
+      nextStatus: orderStatus,
+      cancelledReason: extra.cancelled_reason || '',
+      deliveryPin: extra.delivery_pin || '',
+    });
   }
 }

@@ -3,8 +3,8 @@ import { mapRlsError, resolveAppUserId } from '../../infrastructure/supabase/res
 
 /**
  * PlaceOrder use-case (application service).
- * Frontend sends addressId only; server fetches address, verifies ownership,
- * validates delivery radius via PostGIS, and stores an immutable snapshot.
+ * Frontend sends addressId + cart lines; server validates store, radius,
+ * and recomputes delivery/tax from business settings when available.
  */
 export class PlaceOrder {
   constructor({
@@ -19,22 +19,6 @@ export class PlaceOrder {
     this.supabaseClient = supabaseClient;
   }
 
-  /**
-   * @param {object} command
-   * @param {string} command.customerId
-   * @param {string} command.restaurantId
-   * @param {string} command.addressId
-   * @param {Array<{productId:string,productName:string,foodType:string,quantity:number,unitPrice:number}>} command.items
-   * @param {number} command.subtotal
-   * @param {number} command.discountAmount
-   * @param {number} command.deliveryCharge
-   * @param {number} command.deliveryDiscount
-   * @param {number} command.taxAmount
-   * @param {number} command.grandTotal
-   * @param {string} [command.customerNotes]
-   * @param {'cod'} [command.paymentMethod]
-   * @param {string} [command.couponCode]
-   */
   async execute(command) {
     const {
       customerId,
@@ -85,12 +69,17 @@ export class PlaceOrder {
 
       const branchId = await this.branchRepository.ensureMainBranchId(restaurantId);
 
+      const hoursOk = await this.branchRepository.isBranchOpenNow(branchId);
+      if (hoursOk === false) {
+        throw new Error(
+          'This store is closed right now. Please try again during open hours.',
+        );
+      }
+
       const deliveryCheck = await this.addressRepository.validateDelivery(
         addressId,
         branchId,
       );
-
-      const orderNumber = generateOrderNumber();
 
       const lineItems = items.map((item) => {
         const quantity = Number(item.quantity);
@@ -110,18 +99,71 @@ export class PlaceOrder {
         };
       });
 
+      const computedSubtotal = Number(
+        lineItems.reduce((sum, i) => sum + i.totalPrice, 0).toFixed(2),
+      );
+      const safeSubtotal =
+        Number.isFinite(computedSubtotal) && computedSubtotal > 0
+          ? computedSubtotal
+          : Number(subtotal);
+
+      let serverDelivery = Number(deliveryCharge);
+      let serverTaxRate = 0.05;
+      try {
+        const { data: quoted } = await this.supabaseClient.rpc(
+          'quote_delivery_charge',
+          { p_restaurant_id: restaurantId, p_subtotal: safeSubtotal },
+        );
+        if (quoted != null) serverDelivery = Number(quoted);
+      } catch {
+        // fallback to client deliveryCharge
+      }
+      try {
+        const { data: rate } = await this.supabaseClient.rpc(
+          'get_restaurant_tax_rate',
+          { p_restaurant_id: restaurantId },
+        );
+        if (rate != null) serverTaxRate = Number(rate);
+      } catch {
+        // fallback
+      }
+
+      const safeDiscount = Math.max(0, Number(discountAmount) || 0);
+      const safeDeliveryDiscount = Math.max(0, Number(deliveryDiscount) || 0);
+      const payableDelivery = Math.max(serverDelivery - safeDeliveryDiscount, 0);
+      const taxable = Math.max(safeSubtotal - safeDiscount, 0);
+      const serverTax = Math.round(taxable * serverTaxRate);
+      const serverGrand = Math.max(taxable + payableDelivery + serverTax, 0);
+
+      const finalDelivery = Number.isFinite(serverDelivery)
+        ? serverDelivery
+        : Number(deliveryCharge);
+      const finalTax = Number.isFinite(serverTax) ? serverTax : Number(taxAmount);
+      const finalGrand = Number.isFinite(serverGrand)
+        ? serverGrand
+        : Number(grandTotal);
+
+      let orderNumber = generateOrderNumber();
+      try {
+        const { data: seqNum } = await this.supabaseClient.rpc('next_order_number', {
+          p_prefix: 'GN',
+        });
+        if (seqNum) orderNumber = seqNum;
+      } catch {
+        // migration not applied — keep client-generated number
+      }
+
       const orderRow = {
         order_number: orderNumber,
         restaurant_id: restaurantId,
         branch_id: branchId,
         customer_id: linkedCustomerId,
         address_id: addressId,
-        subtotal: Number(subtotal),
+        subtotal: safeSubtotal,
         discount_amount: 0,
-        delivery_charge: Number(deliveryCharge) + Number(deliveryDiscount),
-        tax_amount: Number(taxAmount),
-        grand_total:
-          Number(grandTotal) + Number(discountAmount) + Number(deliveryDiscount),
+        delivery_charge: finalDelivery,
+        tax_amount: finalTax,
+        grand_total: finalGrand + safeDiscount + safeDeliveryDiscount,
         payment_status: 'pending',
         order_status: 'placed',
         payment_method: 'cod',
@@ -131,13 +173,12 @@ export class PlaceOrder {
           deliveryCheck?.distance_m != null
             ? Number(deliveryCheck.distance_m)
             : null,
-        // delivery_location is filled by DB trigger from address.location
       };
 
       const paymentRow = {
         transaction_id: `COD-${orderNumber}`,
         provider: 'cod',
-        amount: Number(grandTotal),
+        amount: finalGrand,
         currency: 'INR',
         status: 'pending',
       };
