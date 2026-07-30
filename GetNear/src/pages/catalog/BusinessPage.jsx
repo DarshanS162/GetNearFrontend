@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
-import { SearchBar, QuantityControl, StickyCartBar } from '../../components/ui/Shared';
+import { SearchBar, QuantityControl, FloatingCartFab } from '../../components/ui/Shared';
 import { IconBack, IconStar, IconClock, IconBike } from '../../components/ui/Icons';
 import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
 import './BusinessPage.css';
@@ -238,7 +238,7 @@ export default function BusinessPage() {
         <div className="bottom-spacer" />
       </main>
 
-      {storeOpen && <StickyCartBar itemCount={itemCount} total={total} />}
+      {storeOpen && <FloatingCartFab itemCount={itemCount} total={total} />}
     </div>
   );
 }

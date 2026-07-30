@@ -1,19 +1,45 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { deliveryFee, taxRate } from '../data/mockData';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { deliveryFee as fallbackDeliveryFee, taxRate as fallbackTaxRate } from '../data/mockData';
 import { useCatalog } from './CatalogContext';
 import { couponUseCases } from '../application/container';
+import { supabase } from '../lib/supabase';
+import {
+  clearStoredCart,
+  readStoredCart,
+  writeStoredCart,
+} from '../lib/cartStorage';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { getBusiness, getProduct } = useCatalog();
-  const [businessId, setBusinessId] = useState('');
-  const [items, setItems] = useState([]);
+  const { getBusiness, getProduct, loading: catalogLoading } = useCatalog();
+  const [businessId, setBusinessId] = useState(() => readStoredCart().businessId);
+  const [items, setItems] = useState(() => readStoredCart().items);
   const [coupon, setCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [baseDeliveryFee, setBaseDeliveryFee] = useState(fallbackDeliveryFee);
+  const [taxRate, setTaxRate] = useState(fallbackTaxRate);
+  const [hydrated, setHydrated] = useState(false);
 
   const business = getBusiness(businessId);
+
+  // After catalog loads, drop lines for deleted/unavailable products.
+  useEffect(() => {
+    if (catalogLoading) return;
+    setItems((prev) => {
+      const next = prev.filter((row) => Boolean(getProduct(row.productId)));
+      if (next.length === prev.length) return prev;
+      if (next.length === 0) setBusinessId('');
+      return next;
+    });
+    setHydrated(true);
+  }, [catalogLoading, getProduct]);
+
+  useEffect(() => {
+    if (!hydrated && catalogLoading) return;
+    writeStoredCart({ businessId, items });
+  }, [businessId, items, hydrated, catalogLoading]);
 
   const cartItems = useMemo(
     () =>
@@ -34,9 +60,51 @@ export function CartProvider({ children }) {
     0,
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPricing() {
+      if (!businessId) {
+        setBaseDeliveryFee(fallbackDeliveryFee);
+        setTaxRate(fallbackTaxRate);
+        return;
+      }
+      try {
+        const [{ data: fee }, { data: rate }] = await Promise.all([
+          supabase.rpc('quote_delivery_charge', {
+            p_restaurant_id: businessId,
+            p_subtotal: Math.max(subtotal, 0),
+          }),
+          supabase.rpc('get_restaurant_tax_rate', {
+            p_restaurant_id: businessId,
+          }),
+        ]);
+        if (cancelled) return;
+        if (fee != null && Number.isFinite(Number(fee))) {
+          setBaseDeliveryFee(Number(fee));
+        } else {
+          setBaseDeliveryFee(fallbackDeliveryFee);
+        }
+        if (rate != null && Number.isFinite(Number(rate))) {
+          setTaxRate(Number(rate));
+        } else {
+          setTaxRate(fallbackTaxRate);
+        }
+      } catch {
+        if (!cancelled) {
+          setBaseDeliveryFee(fallbackDeliveryFee);
+          setTaxRate(fallbackTaxRate);
+        }
+      }
+    }
+    loadPricing();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, subtotal]);
+
   const discount = Number(coupon?.discountAmount) || 0;
   const deliveryDiscount = Number(coupon?.deliveryDiscount) || 0;
-  const payableDeliveryFee = Math.max(deliveryFee - deliveryDiscount, 0);
+  const payableDeliveryFee = Math.max(baseDeliveryFee - deliveryDiscount, 0);
   const taxable = subtotal - discount;
   const taxes = Math.round(taxable * taxRate);
   const total = Math.max(taxable + payableDeliveryFee + taxes, 0);
@@ -48,7 +116,17 @@ export function CartProvider({ children }) {
 
   function addItem(productId) {
     resetCoupon();
+    const product = getProduct(productId);
+    if (!product) return;
+
     setItems((prev) => {
+      // One restaurant per cart — switching store replaces cart.
+      if (businessId && product.businessId !== businessId) {
+        setBusinessId(product.businessId);
+        return [{ productId, quantity: 1 }];
+      }
+
+      setBusinessId(product.businessId);
       const existing = prev.find((i) => i.productId === productId);
       if (existing) {
         return prev.map((i) =>
@@ -57,8 +135,6 @@ export function CartProvider({ children }) {
             : i,
         );
       }
-      const product = getProduct(productId);
-      if (product) setBusinessId(product.businessId);
       return [...prev, { productId, quantity: 1 }];
     });
   }
@@ -69,7 +145,9 @@ export function CartProvider({ children }) {
       const existing = prev.find((i) => i.productId === productId);
       if (!existing) return prev;
       if (existing.quantity <= 1) {
-        return prev.filter((i) => i.productId !== productId);
+        const next = prev.filter((i) => i.productId !== productId);
+        if (next.length === 0) setBusinessId('');
+        return next;
       }
       return prev.map((i) =>
         i.productId === productId
@@ -88,6 +166,7 @@ export function CartProvider({ children }) {
     setBusinessId('');
     setCoupon(null);
     setCouponError('');
+    clearStoredCart();
   }
 
   async function applyCoupon(code) {
@@ -98,7 +177,7 @@ export function CartProvider({ children }) {
         code,
         restaurantId: businessId,
         subtotal,
-        deliveryCharge: deliveryFee,
+        deliveryCharge: baseDeliveryFee,
         items: cartItems.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
@@ -124,7 +203,7 @@ export function CartProvider({ children }) {
     subtotal,
     discount,
     deliveryFee: payableDeliveryFee,
-    originalDeliveryFee: deliveryFee,
+    originalDeliveryFee: baseDeliveryFee,
     deliveryDiscount,
     taxes,
     total,

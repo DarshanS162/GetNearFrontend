@@ -45,4 +45,53 @@ export class SupabaseBranchRepository {
 
     if (error) throw error;
   }
+
+  /**
+   * @returns {Promise<boolean|null>} true/false if hours known; null if no schedule (use is_active).
+   */
+  async isBranchOpenNow(branchId, now = new Date()) {
+    if (!branchId) return null;
+
+    const day = now.getDay(); // 0=Sun
+    const today = now.toISOString().slice(0, 10);
+    const mins = now.getHours() * 60 + now.getMinutes();
+
+    const { data: branch } = await this.client
+      .from('restaurant_branches')
+      .select('restaurant_id')
+      .eq('id', branchId)
+      .maybeSingle();
+
+    if (branch?.restaurant_id) {
+      const { data: holiday } = await this.client
+        .from('holidays')
+        .select('id')
+        .eq('restaurant_id', branch.restaurant_id)
+        .eq('holiday_date', today)
+        .is('deleted_at', null)
+        .or(`branch_id.is.null,branch_id.eq.${branchId}`)
+        .maybeSingle();
+      if (holiday) return false;
+    }
+
+    const { data: hours, error } = await this.client
+      .from('operating_hours')
+      .select('open_time, close_time, is_closed')
+      .eq('branch_id', branchId)
+      .eq('day_of_week', day)
+      .maybeSingle();
+
+    if (error || !hours) return null;
+    if (hours.is_closed) return false;
+
+    const toMins = (t) => {
+      if (!t) return null;
+      const [h, m] = String(t).split(':').map(Number);
+      return h * 60 + m;
+    };
+    const open = toMins(hours.open_time);
+    const close = toMins(hours.close_time);
+    if (open == null || close == null) return null;
+    return mins >= open && mins < close;
+  }
 }

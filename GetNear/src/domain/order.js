@@ -70,6 +70,7 @@ export function mapOrder(row) {
     createdAt: row.created_at,
     deliveryDistanceM:
       row.delivery_distance_m != null ? Number(row.delivery_distance_m) : null,
+    deliveryPin: row.delivery_pin || '',
     items,
     address,
     addressLine: address ? formatAddressLine(address) : '',

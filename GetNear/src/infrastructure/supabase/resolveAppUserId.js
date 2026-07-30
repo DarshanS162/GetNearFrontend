@@ -65,9 +65,17 @@ export function mapRlsError(err) {
       "Sorry, this store doesn't deliver to your selected address. Try a different address or restaurant nearby.",
     );
   }
-  if (/store is currently closed|not accepting orders/i.test(message)) {
+  if (/store is currently closed|not accepting orders|closed right now/i.test(message)) {
     return new Error(
       'This store is closed right now. Please try again when it opens.',
+    );
+  }
+  if (/delivery code does not match|4-digit delivery code|Delivery code is missing/i.test(message)) {
+    return new Error(message);
+  }
+  if (/Use advance_order_status|customer_cancel_order/i.test(message)) {
+    return new Error(
+      'Order status update is blocked by the database. Run migration 038_fix_order_status_updates.sql in Supabase, then try again.',
     );
   }
   return err instanceof Error ? err : new Error(message);

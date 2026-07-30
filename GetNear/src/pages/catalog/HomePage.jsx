@@ -1,11 +1,12 @@
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
-import { SearchBar } from '../../components/ui/Shared';
+import { SearchBar, FloatingCartFab } from '../../components/ui/Shared';
 import { IconStar, IconClock, IconBike } from '../../components/ui/Icons';
 import { useMemo } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { isCustomerVisible } from '../../domain/restaurant';
 import './HomePage.css';
 
@@ -24,6 +25,7 @@ function StoreCardSkeleton() {
 export default function HomePage() {
   const { businesses, trendingDishes, loading, error } = useCatalog();
   const { loading: authLoading, isAdmin, isRestaurantOwner } = useAuth();
+  const { itemCount, total } = useCart();
   const [searchParams] = useSearchParams();
   const customerView = searchParams.get('view') === 'customer';
   const liveBusinesses = useMemo(
@@ -181,6 +183,7 @@ export default function HomePage() {
 
         <Footer />
       </main>
+      <FloatingCartFab itemCount={itemCount} total={total} />
     </div>
   );
 }

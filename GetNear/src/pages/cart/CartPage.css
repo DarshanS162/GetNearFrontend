@@ -72,8 +72,8 @@
 
 .cart-panel--delivery {
   padding: 0;
-  overflow: hidden;
-  animation-delay: 0.02s;
+  /* No transform animation — it traps position:fixed address modals */
+  animation: none;
 }
 
 .cart-panel--delivery .cart-delivery.card {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AddressFormFields } from './AddressFormFields';
 import { CurrentLocationButton } from './CurrentLocationButton';
 import { MapPickerModal } from './MapPickerModal';
@@ -99,7 +100,7 @@ export function AddressModal({
 
   const hasPin = form.latitude != null && form.longitude != null;
 
-  return (
+  return createPortal(
     <>
       <div className="address-form-overlay" role="dialog" aria-modal="true">
         <form className="address-form card" onSubmit={handleSubmit}>
@@ -160,7 +161,8 @@ export function AddressModal({
         onConfirm={handleMapConfirm}
         onClose={() => setMapOpen(false)}
       />
-    </>
+    </>,
+    document.body,
   );
 }
 
