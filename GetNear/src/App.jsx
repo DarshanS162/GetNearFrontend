@@ -36,6 +36,7 @@ import OwnerCouponsPage from './pages/owner/OwnerCouponsPage';
 import OwnerProfilePage from './pages/owner/OwnerProfilePage';
 
 import PartnerApplyPage from './pages/partner/PartnerApplyPage';
+import OfflineBanner from './components/ui/OfflineBanner';
 
 import './pages/admin/AdminLayout.css';
 
@@ -45,6 +46,7 @@ export default function App() {
       <CatalogProvider>
         <CartProvider>
           <BrowserRouter>
+            <OfflineBanner />
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/business/:id" element={<BusinessPage />} />
