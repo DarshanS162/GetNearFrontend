@@ -14,7 +14,6 @@ const emptyForm = {
   price: '',
   fullPrice: '',
   halfPrice: '',
-  mrp: '',
   foodType: 'veg',
   prepTime: '15',
   ingredients: '',
@@ -35,8 +34,9 @@ function itemToForm(item, businessId) {
         ? String(item.fullPrice ?? item.price ?? '')
         : '',
     halfPrice:
-      pricingType === 'full_half' ? String(item.halfPrice ?? '') : '',
-    mrp: String(item.mrp || ''),
+      pricingType === 'full_half' && item.halfPrice != null
+        ? String(item.halfPrice)
+        : '',
     foodType: item.foodType || 'veg',
     prepTime: String(item.prepTime || 15),
     ingredients: item.ingredients || '',
@@ -162,10 +162,6 @@ export default function MenuItemsManager({
     if (form.pricingType === 'full_half') {
       if (!form.fullPrice && form.fullPrice !== 0) {
         showToast('Full price is required');
-        return;
-      }
-      if (!form.halfPrice && form.halfPrice !== 0) {
-        showToast('Half price is required');
         return;
       }
     } else if (!form.price && form.price !== 0) {
@@ -298,18 +294,17 @@ export default function MenuItemsManager({
                     {item.pricingType === 'full_half' ? (
                       <>
                         <strong>Full ₹{item.fullPrice ?? item.price}</strong>
-                        <span className="admin-table-meta">
-                          {' '}
-                          · Half ₹{item.halfPrice}
-                        </span>
+                        {item.halfPrice != null && (
+                          <span className="admin-table-meta">
+                            {' '}
+                            · Half ₹{item.halfPrice}
+                          </span>
+                        )}
                       </>
                     ) : (
                       <>
                         <strong>₹{item.price}</strong>
                         <span className="admin-table-meta"> / pc</span>
-                        {item.mrp > item.price && (
-                          <span className="admin-table-meta"> (MRP ₹{item.mrp})</span>
-                        )}
                       </>
                     )}
                   </td>
@@ -471,7 +466,7 @@ export default function MenuItemsManager({
                   </button>
                 </div>
                 <p className="form-hint">
-                  Choose one. Piece and Full/Half cannot be used together on the same item.
+                  Choose one. For Full/Half, Half price is optional if that size is not available.
                 </p>
               </div>
 
@@ -492,7 +487,7 @@ export default function MenuItemsManager({
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label" htmlFor="halfPrice">Half price (₹) *</label>
+                    <label className="form-label" htmlFor="halfPrice">Half price (₹)</label>
                     <input
                       id="halfPrice"
                       name="halfPrice"
@@ -500,56 +495,25 @@ export default function MenuItemsManager({
                       min="0"
                       step="1"
                       className="form-input"
+                      placeholder="Optional"
                       value={form.halfPrice}
                       onChange={handleChange}
-                      required
                     />
                   </div>
                 </div>
               ) : (
-                <div className="form-row menu-price-row">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="price">1 Pc price (₹) *</label>
-                    <input
-                      id="price"
-                      name="price"
-                      type="number"
-                      min="0"
-                      step="1"
-                      className="form-input"
-                      value={form.price}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="mrp">MRP (₹)</label>
-                    <input
-                      id="mrp"
-                      name="mrp"
-                      type="number"
-                      min="0"
-                      step="1"
-                      className="form-input"
-                      value={form.mrp}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {form.pricingType === 'full_half' && (
                 <div className="form-group">
-                  <label className="form-label" htmlFor="mrp">MRP (₹) — optional</label>
+                  <label className="form-label" htmlFor="price">1 Pc price (₹) *</label>
                   <input
-                    id="mrp"
-                    name="mrp"
+                    id="price"
+                    name="price"
                     type="number"
                     min="0"
                     step="1"
                     className="form-input"
-                    value={form.mrp}
+                    value={form.price}
                     onChange={handleChange}
+                    required
                   />
                 </div>
               )}

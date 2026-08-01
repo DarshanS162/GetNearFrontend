@@ -9,6 +9,7 @@ import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
 import {
   PRICING_OPTION,
   formatPriceSummary,
+  hasHalfOption,
   isFullHalf,
   resolveUnitPrice,
 } from '../../domain/productPricing';
@@ -202,7 +203,10 @@ export default function BusinessPage() {
               const fullHalf = isFullHalf(item);
               if (fullHalf) {
                 const fullQty = getQuantity(item.id, PRICING_OPTION.FULL);
-                const halfQty = getQuantity(item.id, PRICING_OPTION.HALF);
+                const showHalf = hasHalfOption(item);
+                const halfQty = showHalf
+                  ? getQuantity(item.id, PRICING_OPTION.HALF)
+                  : 0;
                 return (
                   <article key={item.id} className="menu-item">
                     <div className="menu-item-info">
@@ -226,14 +230,16 @@ export default function BusinessPage() {
                               onRemove={() => removeItem(item.id, PRICING_OPTION.FULL)}
                             />
                           </div>
-                          <div className="menu-portion-row">
-                            <span>Half · ₹{resolveUnitPrice(item, PRICING_OPTION.HALF)}</span>
-                            <QuantityControl
-                              quantity={halfQty}
-                              onAdd={() => addItem(item.id, PRICING_OPTION.HALF)}
-                              onRemove={() => removeItem(item.id, PRICING_OPTION.HALF)}
-                            />
-                          </div>
+                          {showHalf && (
+                            <div className="menu-portion-row">
+                              <span>Half · ₹{resolveUnitPrice(item, PRICING_OPTION.HALF)}</span>
+                              <QuantityControl
+                                quantity={halfQty}
+                                onAdd={() => addItem(item.id, PRICING_OPTION.HALF)}
+                                onRemove={() => removeItem(item.id, PRICING_OPTION.HALF)}
+                              />
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <span className="menu-item-closed">Unavailable</span>
@@ -263,9 +269,6 @@ export default function BusinessPage() {
                     <div className="menu-item-price-row">
                       <span className="menu-price">₹{item.price}</span>
                       <span className="menu-unit-tag">1 Pc</span>
-                      {item.mrp > item.price && (
-                        <span className="menu-mrp">₹{item.mrp}</span>
-                      )}
                     </div>
                     {item.description && <p>{item.description}</p>}
                     {storeOpen ? (

@@ -10,6 +10,7 @@ import {
   PRICING_OPTION,
   defaultOption,
   formatPriceSummary,
+  hasHalfOption,
   isFullHalf,
   optionLabel,
   resolveUnitPrice,
@@ -28,7 +29,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (product) setOption(defaultOption(product));
-  }, [product?.id, product?.pricingType]);
+  }, [product?.id, product?.pricingType, product?.halfPrice]);
 
   if (!product) {
     return <div className="page-container">Product not found</div>;
@@ -59,6 +60,7 @@ export default function ProductDetailPage() {
   const lineTotal = unitPrice * Math.max(qty, 1);
   const showCartBar = storeOpen && itemCount > 0;
   const fullHalf = isFullHalf(product);
+  const showHalf = hasHalfOption(product);
 
   return (
     <div className="app-shell product-shell animate-in">
@@ -101,9 +103,6 @@ export default function ProductDetailPage() {
                 <>
                   <span className="product-price">₹{product.price}</span>
                   <span className="product-unit-tag">1 Pc</span>
-                  {product.mrp > product.price && (
-                    <span className="product-mrp">₹{product.mrp}</span>
-                  )}
                 </>
               )}
             </div>
@@ -114,7 +113,7 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {fullHalf && (
+          {fullHalf && showHalf && (
             <div className="product-option-row" role="radiogroup" aria-label="Portion size">
               <button
                 type="button"
@@ -133,6 +132,12 @@ export default function ProductDetailPage() {
                 Half · ₹{product.halfPrice}
               </button>
             </div>
+          )}
+
+          {fullHalf && !showHalf && (
+            <p className="product-unit-tag" style={{ marginBottom: 12 }}>
+              Full only · ₹{product.fullPrice ?? product.price}
+            </p>
           )}
 
           {product.description?.trim() && (

@@ -86,7 +86,10 @@ export function mapProduct(row) {
     row.pricing_type === 'full_half' ? 'full_half' : 'piece';
   const fullPrice =
     row.full_price != null ? Number(row.full_price) : Number(row.selling_price);
-  const halfPrice = row.half_price != null ? Number(row.half_price) : 0;
+  const halfPrice =
+    row.half_price != null && row.half_price !== ''
+      ? Number(row.half_price)
+      : null;
   const price =
     pricingType === 'full_half' ? fullPrice : Number(row.selling_price);
 
@@ -97,7 +100,7 @@ export function mapProduct(row) {
     name: row.name,
     description: row.description || '',
     price,
-    mrp: Number(row.mrp),
+    mrp: Number(row.mrp) || price,
     pricingType,
     fullPrice: pricingType === 'full_half' ? fullPrice : null,
     halfPrice: pricingType === 'full_half' ? halfPrice : null,

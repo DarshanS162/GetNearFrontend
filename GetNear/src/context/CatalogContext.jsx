@@ -349,12 +349,16 @@ export function CatalogProvider({ children }) {
 
     if (pricingType === 'full_half') {
       fullPrice = Number(data.fullPrice);
-      halfPrice = Number(data.halfPrice);
       if (!Number.isFinite(fullPrice) || fullPrice < 0) {
         throw new Error('Full price is required');
       }
-      if (!Number.isFinite(halfPrice) || halfPrice < 0) {
-        throw new Error('Half price is required');
+      if (data.halfPrice !== '' && data.halfPrice != null) {
+        halfPrice = Number(data.halfPrice);
+        if (!Number.isFinite(halfPrice) || halfPrice < 0) {
+          throw new Error('Half price must be a valid number');
+        }
+      } else {
+        halfPrice = null;
       }
       price = fullPrice;
     } else {
@@ -364,8 +368,8 @@ export function CatalogProvider({ children }) {
       }
     }
 
-    const mrp = Number(data.mrp) || price;
-    if (mrp < price) throw new Error('MRP must be greater than or equal to selling price');
+    const mrp = price;
+    const discount_amount = 0;
 
     const baseSlug = slugify(data.name) || `product-${Date.now()}`;
     let slug = baseSlug;
@@ -381,7 +385,7 @@ export function CatalogProvider({ children }) {
         food_type: data.foodType || 'veg',
         mrp,
         selling_price: price,
-        discount_amount: Math.max(0, mrp - price),
+        discount_amount,
         pricing_type: pricingType,
         full_price: pricingType === 'full_half' ? fullPrice : null,
         half_price: pricingType === 'full_half' ? halfPrice : null,
@@ -421,12 +425,16 @@ export function CatalogProvider({ children }) {
 
     if (pricingType === 'full_half') {
       fullPrice = Number(data.fullPrice);
-      halfPrice = Number(data.halfPrice);
       if (!Number.isFinite(fullPrice) || fullPrice < 0) {
         throw new Error('Full price is required');
       }
-      if (!Number.isFinite(halfPrice) || halfPrice < 0) {
-        throw new Error('Half price is required');
+      if (data.halfPrice !== '' && data.halfPrice != null) {
+        halfPrice = Number(data.halfPrice);
+        if (!Number.isFinite(halfPrice) || halfPrice < 0) {
+          throw new Error('Half price must be a valid number');
+        }
+      } else {
+        halfPrice = null;
       }
       price = fullPrice;
     } else {
@@ -436,8 +444,7 @@ export function CatalogProvider({ children }) {
       }
     }
 
-    const mrp = Number(data.mrp) || price;
-    if (mrp < price) throw new Error('MRP must be greater than or equal to selling price');
+    const mrp = price;
 
     const payload = {
       restaurant_id: data.businessId,
@@ -447,7 +454,7 @@ export function CatalogProvider({ children }) {
       food_type: data.foodType || 'veg',
       mrp,
       selling_price: price,
-      discount_amount: Math.max(0, mrp - price),
+      discount_amount: 0,
       pricing_type: pricingType,
       full_price: pricingType === 'full_half' ? fullPrice : null,
       half_price: pricingType === 'full_half' ? halfPrice : null,

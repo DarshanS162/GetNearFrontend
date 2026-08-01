@@ -230,16 +230,20 @@ export default function AdminCustomers() {
 
   async function handleDeletePermanent(customer) {
     const ok = window.confirm(
-      `Permanently delete "${customer.fullName}"?\n\nThis cannot be undone. If they have orders, use Disable instead.`,
+      `Permanently delete "${customer.fullName}"?\n\nThey will be removed from the customer list. Order history (if any) is kept without their personal details.`,
     );
     if (!ok) return;
 
     try {
-      const { error: err } = await supabase.rpc('admin_delete_customer', {
+      const { data, error: err } = await supabase.rpc('admin_delete_customer', {
         p_user_id: customer.id,
       });
       if (err) throw err;
-      showToast(`Permanently deleted ${customer.fullName}`);
+      showToast(
+        data === 'anonymized'
+          ? `${customer.fullName} removed (order history kept anonymously)`
+          : `Permanently deleted ${customer.fullName}`,
+      );
       await loadCustomers();
     } catch (err) {
       showToast(err.message || 'Permanent delete failed');
@@ -251,7 +255,7 @@ export default function AdminCustomers() {
       <div className="admin-page-header admin-page-header-row">
         <div>
           <h1>Customers</h1>
-          <p>View and manage customer accounts. Disable to block login, or delete permanently if they have no order history.</p>
+          <p>View and manage customer accounts. Disable to block access, or delete permanently to remove them from this list.</p>
         </div>
         <button type="button" className="btn btn-primary" onClick={openAdd}>
           + Add customer
