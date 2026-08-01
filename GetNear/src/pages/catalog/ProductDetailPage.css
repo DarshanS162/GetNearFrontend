@@ -103,6 +103,42 @@
   color: var(--color-text);
 }
 
+.product-price--summary {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.product-unit-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.product-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.product-option {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.product-option.is-on {
+  border-color: rgba(255, 107, 53, 0.45);
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--color-primary);
+}
+
 .product-mrp {
   font-size: 15px;
   color: var(--color-text-secondary);

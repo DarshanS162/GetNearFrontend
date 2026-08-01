@@ -10,7 +10,10 @@ const emptyForm = {
   categoryId: '',
   name: '',
   description: '',
+  pricingType: 'piece',
   price: '',
+  fullPrice: '',
+  halfPrice: '',
   mrp: '',
   foodType: 'veg',
   prepTime: '15',
@@ -19,12 +22,20 @@ const emptyForm = {
 };
 
 function itemToForm(item, businessId) {
+  const pricingType = item.pricingType === 'full_half' ? 'full_half' : 'piece';
   return {
     businessId: item.businessId || businessId || '',
     categoryId: item.categoryId || '',
     name: item.name || '',
     description: item.description || '',
-    price: String(item.price || ''),
+    pricingType,
+    price: pricingType === 'piece' ? String(item.price || '') : '',
+    fullPrice:
+      pricingType === 'full_half'
+        ? String(item.fullPrice ?? item.price ?? '')
+        : '',
+    halfPrice:
+      pricingType === 'full_half' ? String(item.halfPrice ?? '') : '',
     mrp: String(item.mrp || ''),
     foodType: item.foodType || 'veg',
     prepTime: String(item.prepTime || 15),
@@ -148,8 +159,17 @@ export default function MenuItemsManager({
       showToast('Item name is required');
       return;
     }
-    if (!form.price) {
-      showToast('Selling price is required');
+    if (form.pricingType === 'full_half') {
+      if (!form.fullPrice && form.fullPrice !== 0) {
+        showToast('Full price is required');
+        return;
+      }
+      if (!form.halfPrice && form.halfPrice !== 0) {
+        showToast('Half price is required');
+        return;
+      }
+    } else if (!form.price && form.price !== 0) {
+      showToast('Piece price is required');
       return;
     }
     if (!form.categoryId) {
@@ -275,9 +295,22 @@ export default function MenuItemsManager({
                     <td>{getBusinessName(item.businessId)}</td>
                   )}
                   <td>
-                    <strong>₹{item.price}</strong>
-                    {item.mrp > item.price && (
-                      <span className="admin-table-meta"> (MRP ₹{item.mrp})</span>
+                    {item.pricingType === 'full_half' ? (
+                      <>
+                        <strong>Full ₹{item.fullPrice ?? item.price}</strong>
+                        <span className="admin-table-meta">
+                          {' '}
+                          · Half ₹{item.halfPrice}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <strong>₹{item.price}</strong>
+                        <span className="admin-table-meta"> / pc</span>
+                        {item.mrp > item.price && (
+                          <span className="admin-table-meta"> (MRP ₹{item.mrp})</span>
+                        )}
+                      </>
                     )}
                   </td>
                   <td>
@@ -413,16 +446,113 @@ export default function MenuItemsManager({
                 <textarea id="description" name="description" className="form-input" rows={2} value={form.description} onChange={handleChange} style={{ resize: 'vertical' }} />
               </div>
 
-              <div className="form-row menu-price-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="price">Selling price (₹) *</label>
-                  <input id="price" name="price" type="number" min="1" className="form-input" value={form.price} onChange={handleChange} required />
+              <div className="form-group">
+                <p className="form-label">Pricing type *</p>
+                <div className="menu-pricing-type" role="radiogroup" aria-label="Pricing type">
+                  <button
+                    type="button"
+                    className={`chip ${form.pricingType === 'piece' ? 'chip-active' : ''}`}
+                    aria-pressed={form.pricingType === 'piece'}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, pricingType: 'piece' }))
+                    }
+                  >
+                    Piece (Pc)
+                  </button>
+                  <button
+                    type="button"
+                    className={`chip ${form.pricingType === 'full_half' ? 'chip-active' : ''}`}
+                    aria-pressed={form.pricingType === 'full_half'}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, pricingType: 'full_half' }))
+                    }
+                  >
+                    Full / Half
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="mrp">MRP (₹)</label>
-                  <input id="mrp" name="mrp" type="number" min="1" className="form-input" value={form.mrp} onChange={handleChange} />
-                </div>
+                <p className="form-hint">
+                  Choose one. Piece and Full/Half cannot be used together on the same item.
+                </p>
               </div>
+
+              {form.pricingType === 'full_half' ? (
+                <div className="form-row menu-price-row">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="fullPrice">Full price (₹) *</label>
+                    <input
+                      id="fullPrice"
+                      name="fullPrice"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="form-input"
+                      value={form.fullPrice}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="halfPrice">Half price (₹) *</label>
+                    <input
+                      id="halfPrice"
+                      name="halfPrice"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="form-input"
+                      value={form.halfPrice}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-row menu-price-row">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="price">1 Pc price (₹) *</label>
+                    <input
+                      id="price"
+                      name="price"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="form-input"
+                      value={form.price}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="mrp">MRP (₹)</label>
+                    <input
+                      id="mrp"
+                      name="mrp"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="form-input"
+                      value={form.mrp}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {form.pricingType === 'full_half' && (
+                <div className="form-group">
+                  <label className="form-label" htmlFor="mrp">MRP (₹) — optional</label>
+                  <input
+                    id="mrp"
+                    name="mrp"
+                    type="number"
+                    min="0"
+                    step="1"
+                    className="form-input"
+                    value={form.mrp}
+                    onChange={handleChange}
+                  />
+                </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">

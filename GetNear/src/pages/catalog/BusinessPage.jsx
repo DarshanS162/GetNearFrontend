@@ -6,6 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 import { SearchBar, QuantityControl, FloatingCartFab } from '../../components/ui/Shared';
 import { IconBack, IconStar, IconClock, IconBike } from '../../components/ui/Icons';
 import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
+import {
+  PRICING_OPTION,
+  formatPriceSummary,
+  isFullHalf,
+  resolveUnitPrice,
+} from '../../domain/productPricing';
 import './BusinessPage.css';
 
 function FoodTypeMark({ type }) {
@@ -193,7 +199,58 @@ export default function BusinessPage() {
         ) : (
           <div className="menu-list">
             {menuItems.map((item) => {
-              const qty = getQuantity(item.id);
+              const fullHalf = isFullHalf(item);
+              if (fullHalf) {
+                const fullQty = getQuantity(item.id, PRICING_OPTION.FULL);
+                const halfQty = getQuantity(item.id, PRICING_OPTION.HALF);
+                return (
+                  <article key={item.id} className="menu-item">
+                    <div className="menu-item-info">
+                      <div className="menu-item-title-row">
+                        <FoodTypeMark type={item.foodType} />
+                        <Link to={`/product/${item.id}`}>
+                          <h3>{item.name}</h3>
+                        </Link>
+                      </div>
+                      <div className="menu-item-price-row">
+                        <span className="menu-price">{formatPriceSummary(item)}</span>
+                      </div>
+                      {item.description && <p>{item.description}</p>}
+                      {storeOpen ? (
+                        <div className="menu-portion-actions">
+                          <div className="menu-portion-row">
+                            <span>Full · ₹{resolveUnitPrice(item, PRICING_OPTION.FULL)}</span>
+                            <QuantityControl
+                              quantity={fullQty}
+                              onAdd={() => addItem(item.id, PRICING_OPTION.FULL)}
+                              onRemove={() => removeItem(item.id, PRICING_OPTION.FULL)}
+                            />
+                          </div>
+                          <div className="menu-portion-row">
+                            <span>Half · ₹{resolveUnitPrice(item, PRICING_OPTION.HALF)}</span>
+                            <QuantityControl
+                              quantity={halfQty}
+                              onAdd={() => addItem(item.id, PRICING_OPTION.HALF)}
+                              onRemove={() => removeItem(item.id, PRICING_OPTION.HALF)}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="menu-item-closed">Unavailable</span>
+                      )}
+                    </div>
+                    <Link to={`/product/${item.id}`} className="menu-item-media" aria-label={item.name}>
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" />
+                      ) : (
+                        <span className="menu-item-media-fallback">🍽️</span>
+                      )}
+                    </Link>
+                  </article>
+                );
+              }
+
+              const qty = getQuantity(item.id, PRICING_OPTION.PIECE);
               return (
                 <article key={item.id} className="menu-item">
                   <div className="menu-item-info">
@@ -205,6 +262,7 @@ export default function BusinessPage() {
                     </div>
                     <div className="menu-item-price-row">
                       <span className="menu-price">₹{item.price}</span>
+                      <span className="menu-unit-tag">1 Pc</span>
                       {item.mrp > item.price && (
                         <span className="menu-mrp">₹{item.mrp}</span>
                       )}
@@ -214,8 +272,8 @@ export default function BusinessPage() {
                       <div className="menu-item-actions">
                         <QuantityControl
                           quantity={qty}
-                          onAdd={() => addItem(item.id)}
-                          onRemove={() => removeItem(item.id)}
+                          onAdd={() => addItem(item.id, PRICING_OPTION.PIECE)}
+                          onRemove={() => removeItem(item.id, PRICING_OPTION.PIECE)}
                         />
                       </div>
                     ) : (

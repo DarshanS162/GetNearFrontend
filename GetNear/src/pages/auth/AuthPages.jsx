@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '../../components/ui/Logo';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { useAuth } from '../../context/AuthContext';
 import { referralUseCases } from '../../application/container';
 import {
@@ -73,13 +74,13 @@ export default function LoginPage() {
         {!useOtp && (
           <>
             <label className="form-label" htmlFor="password">Password</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
-              className="form-input auth-password-input"
+              className="auth-password-input"
               placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
           </>
         )}
@@ -399,23 +400,23 @@ export function SetPasswordPage() {
         </p>
 
         <label className="form-label" htmlFor="new-password">Password</label>
-        <input
+        <PasswordInput
           id="new-password"
-          type="password"
-          className="form-input auth-password-input"
+          className="auth-password-input"
           placeholder="At least 6 characters"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
         />
 
         <label className="form-label" htmlFor="confirm-password">Confirm password</label>
-        <input
+        <PasswordInput
           id="confirm-password"
-          type="password"
-          className="form-input auth-password-input"
+          className="auth-password-input"
           placeholder="Re-enter password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="new-password"
         />
 
         {error && <p className="auth-error">{error}</p>}

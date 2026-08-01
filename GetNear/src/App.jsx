@@ -26,6 +26,7 @@ import AdminApplicationsPage from './pages/admin/AdminApplicationsPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminCouponsPage from './pages/admin/AdminCouponsPage';
 import AdminReferralsPage from './pages/admin/AdminReferralsPage';
+import AdminCustomers from './pages/admin/AdminCustomers';
 
 import OwnerLayout from './pages/owner/OwnerLayout';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
@@ -69,6 +70,7 @@ export default function App() {
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="applications" element={<AdminApplicationsPage />} />
+                <Route path="customers" element={<AdminCustomers />} />
                 <Route path="restaurants" element={<AdminRestaurants />} />
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="coupons" element={<AdminCouponsPage />} />

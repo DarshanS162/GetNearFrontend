@@ -8,6 +8,13 @@ import {
   readStoredCart,
   writeStoredCart,
 } from '../lib/cartStorage';
+import {
+  cartLineKey,
+  formatLineName,
+  normalizeOption,
+  optionLabel,
+  resolveUnitPrice,
+} from '../domain/productPricing';
 
 const CartContext = createContext(null);
 
@@ -24,7 +31,6 @@ export function CartProvider({ children }) {
 
   const business = getBusiness(businessId);
 
-  // After catalog loads, drop lines for deleted/unavailable products.
   useEffect(() => {
     if (catalogLoading) return;
     setItems((prev) => {
@@ -44,10 +50,20 @@ export function CartProvider({ children }) {
   const cartItems = useMemo(
     () =>
       items
-        .map((item) => {
-          const product = getProduct(item.productId);
+        .map((row) => {
+          const product = getProduct(row.productId);
           if (!product) return null;
-          return { ...product, quantity: item.quantity };
+          const option = normalizeOption(product, row.option);
+          const unitPrice = resolveUnitPrice(product, option);
+          return {
+            ...product,
+            option,
+            optionLabel: optionLabel(option),
+            lineName: formatLineName(product.name, option),
+            price: unitPrice,
+            quantity: row.quantity,
+            lineKey: cartLineKey(product.id, option),
+          };
         })
         .filter(Boolean),
     [items, getProduct],
@@ -114,51 +130,69 @@ export function CartProvider({ children }) {
     setCouponError('');
   }
 
-  function addItem(productId) {
+  function addItem(productId, option) {
     resetCoupon();
     const product = getProduct(productId);
     if (!product) return;
+    const resolved = normalizeOption(product, option);
 
     setItems((prev) => {
-      // One restaurant per cart — switching store replaces cart.
       if (businessId && product.businessId !== businessId) {
         setBusinessId(product.businessId);
-        return [{ productId, quantity: 1 }];
+        return [{ productId, quantity: 1, option: resolved }];
       }
 
       setBusinessId(product.businessId);
-      const existing = prev.find((i) => i.productId === productId);
+      const existing = prev.find(
+        (i) => i.productId === productId && i.option === resolved,
+      );
       if (existing) {
         return prev.map((i) =>
-          i.productId === productId
+          i.productId === productId && i.option === resolved
             ? { ...i, quantity: i.quantity + 1 }
             : i,
         );
       }
-      return [...prev, { productId, quantity: 1 }];
+      return [...prev, { productId, quantity: 1, option: resolved }];
     });
   }
 
-  function removeItem(productId) {
+  function removeItem(productId, option) {
     resetCoupon();
+    const product = getProduct(productId);
+    const resolved = product
+      ? normalizeOption(product, option)
+      : option || 'piece';
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === productId);
+      const existing = prev.find(
+        (i) => i.productId === productId && i.option === resolved,
+      );
       if (!existing) return prev;
       if (existing.quantity <= 1) {
-        const next = prev.filter((i) => i.productId !== productId);
+        const next = prev.filter(
+          (i) => !(i.productId === productId && i.option === resolved),
+        );
         if (next.length === 0) setBusinessId('');
         return next;
       }
       return prev.map((i) =>
-        i.productId === productId
+        i.productId === productId && i.option === resolved
           ? { ...i, quantity: i.quantity - 1 }
           : i,
       );
     });
   }
 
-  function getQuantity(productId) {
-    return items.find((i) => i.productId === productId)?.quantity ?? 0;
+  function getQuantity(productId, option) {
+    const product = getProduct(productId);
+    const resolved = product
+      ? normalizeOption(product, option)
+      : option || 'piece';
+    return (
+      items.find((i) => i.productId === productId && i.option === resolved)
+        ?.quantity ?? 0
+    );
   }
 
   function clearCart() {

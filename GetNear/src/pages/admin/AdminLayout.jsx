@@ -7,6 +7,7 @@ import './AdminLayout.css';
 const navItems = [
   { to: '/admin', label: 'Dashboard', end: true },
   { to: '/admin/applications', label: 'Applications' },
+  { to: '/admin/customers', label: 'Customers' },
   { to: '/admin/restaurants', label: 'Restaurants' },
   { to: '/admin/products', label: 'All menu items' },
   { to: '/admin/coupons', label: 'Coupons' },

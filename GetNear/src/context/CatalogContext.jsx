@@ -342,7 +342,28 @@ export function CatalogProvider({ children }) {
       data.newCategoryName,
     );
 
-    const price = Number(data.price);
+    const pricingType = data.pricingType === 'full_half' ? 'full_half' : 'piece';
+    let price;
+    let fullPrice = null;
+    let halfPrice = null;
+
+    if (pricingType === 'full_half') {
+      fullPrice = Number(data.fullPrice);
+      halfPrice = Number(data.halfPrice);
+      if (!Number.isFinite(fullPrice) || fullPrice < 0) {
+        throw new Error('Full price is required');
+      }
+      if (!Number.isFinite(halfPrice) || halfPrice < 0) {
+        throw new Error('Half price is required');
+      }
+      price = fullPrice;
+    } else {
+      price = Number(data.price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error('Piece price is required');
+      }
+    }
+
     const mrp = Number(data.mrp) || price;
     if (mrp < price) throw new Error('MRP must be greater than or equal to selling price');
 
@@ -361,6 +382,9 @@ export function CatalogProvider({ children }) {
         mrp,
         selling_price: price,
         discount_amount: Math.max(0, mrp - price),
+        pricing_type: pricingType,
+        full_price: pricingType === 'full_half' ? fullPrice : null,
+        half_price: pricingType === 'full_half' ? halfPrice : null,
         preparation_time_minutes: Number(data.prepTime) || 15,
         is_available: data.isAvailable !== false,
         ingredients: data.ingredients || null,
@@ -390,7 +414,28 @@ export function CatalogProvider({ children }) {
       data.newCategoryName,
     );
 
-    const price = Number(data.price);
+    const pricingType = data.pricingType === 'full_half' ? 'full_half' : 'piece';
+    let price;
+    let fullPrice = null;
+    let halfPrice = null;
+
+    if (pricingType === 'full_half') {
+      fullPrice = Number(data.fullPrice);
+      halfPrice = Number(data.halfPrice);
+      if (!Number.isFinite(fullPrice) || fullPrice < 0) {
+        throw new Error('Full price is required');
+      }
+      if (!Number.isFinite(halfPrice) || halfPrice < 0) {
+        throw new Error('Half price is required');
+      }
+      price = fullPrice;
+    } else {
+      price = Number(data.price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error('Piece price is required');
+      }
+    }
+
     const mrp = Number(data.mrp) || price;
     if (mrp < price) throw new Error('MRP must be greater than or equal to selling price');
 
@@ -403,6 +448,9 @@ export function CatalogProvider({ children }) {
       mrp,
       selling_price: price,
       discount_amount: Math.max(0, mrp - price),
+      pricing_type: pricingType,
+      full_price: pricingType === 'full_half' ? fullPrice : null,
+      half_price: pricingType === 'full_half' ? halfPrice : null,
       preparation_time_minutes: Number(data.prepTime) || 15,
       is_available: data.isAvailable !== false,
       ingredients: data.ingredients || null,

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Logo } from '../../components/ui/Logo';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { useAuth } from '../../context/AuthContext';
 import '../auth/AuthPages.css';
 
@@ -52,13 +53,13 @@ export default function AdminLoginPage() {
         </div>
 
         <label className="form-label" htmlFor="admin-password">Password</label>
-        <input
+        <PasswordInput
           id="admin-password"
-          type="password"
-          className="form-input auth-password-input"
+          className="auth-password-input"
           placeholder="Your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleLogin();
           }}
@@ -69,7 +70,6 @@ export default function AdminLoginPage() {
         <button type="button" className="btn btn-primary btn-full" onClick={handleLogin} disabled={busy}>
           {busy ? 'Signing in…' : 'Log in'}
         </button>
-
 
         <p className="auth-footer">
           <Link to="/">← Back to customer app</Link>

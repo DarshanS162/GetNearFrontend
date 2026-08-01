@@ -1,10 +1,19 @@
 import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
 import { IconBack, IconClock } from '../../components/ui/Icons';
 import { QuantityControl, FloatingCartFab } from '../../components/ui/Shared';
 import { isCustomerVisible, isStoreOpen } from '../../domain/restaurant';
+import {
+  PRICING_OPTION,
+  defaultOption,
+  formatPriceSummary,
+  isFullHalf,
+  optionLabel,
+  resolveUnitPrice,
+} from '../../domain/productPricing';
 import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {
@@ -13,7 +22,13 @@ export default function ProductDetailPage() {
   const { isAdmin, user } = useAuth();
   const product = getProduct(id);
   const { addItem, removeItem, getQuantity, itemCount, total } = useCart();
-  const qty = getQuantity(id);
+  const [option, setOption] = useState(() =>
+    product ? defaultOption(product) : PRICING_OPTION.PIECE,
+  );
+
+  useEffect(() => {
+    if (product) setOption(defaultOption(product));
+  }, [product?.id, product?.pricingType]);
 
   if (!product) {
     return <div className="page-container">Product not found</div>;
@@ -39,8 +54,11 @@ export default function ProductDetailPage() {
     .filter((p) => p.businessId === product.businessId && p.id !== product.id)
     .slice(0, 3);
   const ingredients = String(product.ingredients || '').trim();
-  const lineTotal = product.price * Math.max(qty, 1);
+  const unitPrice = resolveUnitPrice(product, option);
+  const qty = getQuantity(product.id, option);
+  const lineTotal = unitPrice * Math.max(qty, 1);
   const showCartBar = storeOpen && itemCount > 0;
+  const fullHalf = isFullHalf(product);
 
   return (
     <div className="app-shell product-shell animate-in">
@@ -75,9 +93,18 @@ export default function ProductDetailPage() {
         <div className="product-detail">
           <div className="product-price-row">
             <div className="product-price-group">
-              <span className="product-price">₹{product.price}</span>
-              {product.mrp > product.price && (
-                <span className="product-mrp">₹{product.mrp}</span>
+              {fullHalf ? (
+                <span className="product-price product-price--summary">
+                  {formatPriceSummary(product)}
+                </span>
+              ) : (
+                <>
+                  <span className="product-price">₹{product.price}</span>
+                  <span className="product-unit-tag">1 Pc</span>
+                  {product.mrp > product.price && (
+                    <span className="product-mrp">₹{product.mrp}</span>
+                  )}
+                </>
               )}
             </div>
             {product.prepTime != null && (
@@ -86,6 +113,27 @@ export default function ProductDetailPage() {
               </span>
             )}
           </div>
+
+          {fullHalf && (
+            <div className="product-option-row" role="radiogroup" aria-label="Portion size">
+              <button
+                type="button"
+                className={`product-option ${option === PRICING_OPTION.FULL ? 'is-on' : ''}`}
+                aria-pressed={option === PRICING_OPTION.FULL}
+                onClick={() => setOption(PRICING_OPTION.FULL)}
+              >
+                Full · ₹{product.fullPrice ?? product.price}
+              </button>
+              <button
+                type="button"
+                className={`product-option ${option === PRICING_OPTION.HALF ? 'is-on' : ''}`}
+                aria-pressed={option === PRICING_OPTION.HALF}
+                onClick={() => setOption(PRICING_OPTION.HALF)}
+              >
+                Half · ₹{product.halfPrice}
+              </button>
+            </div>
+          )}
 
           {product.description?.trim() && (
             <p className="product-desc">{product.description}</p>
@@ -125,7 +173,7 @@ export default function ProductDetailPage() {
                   )}
                   <div>
                     <strong>{item.name}</strong>
-                    <span>₹{item.price}</span>
+                    <span>{formatPriceSummary(item)}</span>
                   </div>
                 </Link>
               ))}
@@ -140,20 +188,20 @@ export default function ProductDetailPage() {
             <button
               type="button"
               className="btn btn-primary product-cta-add"
-              onClick={() => addItem(product.id)}
+              onClick={() => addItem(product.id, option)}
             >
-              Add to cart · ₹{product.price}
+              Add {optionLabel(option)} · ₹{unitPrice}
             </button>
           ) : (
             <div className="product-cta-active">
               <div className="product-cta-qty-label">
-                <span>In your cart</span>
+                <span>{optionLabel(option)} in cart</span>
                 <strong>₹{lineTotal}</strong>
               </div>
               <QuantityControl
                 quantity={qty}
-                onAdd={() => addItem(product.id)}
-                onRemove={() => removeItem(product.id)}
+                onAdd={() => addItem(product.id, option)}
+                onRemove={() => removeItem(product.id, option)}
               />
             </div>
           )}

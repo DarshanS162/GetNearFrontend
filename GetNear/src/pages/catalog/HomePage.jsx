@@ -3,7 +3,7 @@ import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { SearchBar, FloatingCartFab } from '../../components/ui/Shared';
 import { IconStar, IconClock, IconBike } from '../../components/ui/Icons';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCatalog } from '../../context/CatalogContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -27,14 +27,34 @@ export default function HomePage() {
   const { loading: authLoading, isAdmin, isRestaurantOwner } = useAuth();
   const { itemCount, total } = useCart();
   const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState('');
   const customerView = searchParams.get('view') === 'customer';
+
   const liveBusinesses = useMemo(
     () => businesses.filter(isCustomerVisible),
     [businesses],
   );
+
+  const query = search.trim().toLowerCase();
+  const searching = Boolean(query);
+
+  const filteredBusinesses = useMemo(() => {
+    if (!query) return liveBusinesses;
+    return liveBusinesses.filter((b) => {
+      const name = String(b.name || '').toLowerCase();
+      const type = String(b.type || '').toLowerCase();
+      const location = String(b.location || '').toLowerCase();
+      return (
+        name.includes(query) ||
+        type.includes(query) ||
+        location.includes(query)
+      );
+    });
+  }, [liveBusinesses, query]);
+
   const openCount = useMemo(
-    () => liveBusinesses.filter((b) => b.isOpen).length,
-    [liveBusinesses],
+    () => filteredBusinesses.filter((b) => b.isOpen).length,
+    [filteredBusinesses],
   );
 
   if (!authLoading && !customerView && isAdmin) {
@@ -59,7 +79,11 @@ export default function HomePage() {
             Order from trusted local kitchens — fast delivery to your door.
           </p>
           <div className="home-hero-search">
-            <SearchBar placeholder="Search restaurants or dishes…" />
+            <SearchBar
+              placeholder="Search restaurants…"
+              value={search}
+              onChange={setSearch}
+            />
           </div>
         </section>
 
@@ -73,13 +97,17 @@ export default function HomePage() {
         <section className="home-section">
           <div className="home-section-head">
             <div>
-              <h2>Nearby stores</h2>
+              <h2>{searching ? 'Search results' : 'Nearby stores'}</h2>
               <p>
                 {loading
                   ? 'Finding places around you…'
-                  : liveBusinesses.length === 0
-                    ? 'New kitchens joining soon'
-                    : `${openCount} open · ${liveBusinesses.length} nearby`}
+                  : searching
+                    ? filteredBusinesses.length === 0
+                      ? `No restaurants match “${search.trim()}”`
+                      : `${filteredBusinesses.length} found`
+                    : liveBusinesses.length === 0
+                      ? 'New kitchens joining soon'
+                      : `${openCount} open · ${liveBusinesses.length} nearby`}
               </p>
             </div>
           </div>
@@ -90,14 +118,29 @@ export default function HomePage() {
               <StoreCardSkeleton />
               <StoreCardSkeleton />
             </div>
-          ) : liveBusinesses.length === 0 ? (
+          ) : filteredBusinesses.length === 0 ? (
             <div className="home-empty">
-              <strong>No stores nearby yet</strong>
-              <p>We’re onboarding local restaurants in your area. Check back soon.</p>
+              <strong>
+                {searching ? 'No matching restaurants' : 'No stores nearby yet'}
+              </strong>
+              <p>
+                {searching
+                  ? 'Try another name, or clear the search.'
+                  : 'We’re onboarding local restaurants in your area. Check back soon.'}
+              </p>
+              {searching && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setSearch('')}
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           ) : (
             <div className="home-store-scroll">
-              {liveBusinesses.map((biz) => (
+              {filteredBusinesses.map((biz) => (
                 <Link
                   key={biz.id}
                   to={`/business/${biz.id}`}
@@ -140,7 +183,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {trendingDishes.length > 0 && (
+        {!searching && trendingDishes.length > 0 && (
           <section className="home-section">
             <div className="home-section-head">
               <div>
@@ -168,18 +211,23 @@ export default function HomePage() {
           </section>
         )}
 
-        <section className="home-section">
-          <div className="home-promo">
-            <div>
-              <p className="home-promo-label">First order</p>
-              <h3>Save on your first GetNear meal</h3>
-              <p>Enjoy a welcome discount when you order above ₹299.</p>
+        {!searching && (
+          <section className="home-section">
+            <div className="home-promo">
+              <div>
+                <p className="home-promo-label">First order</p>
+                <h3>Save on your first GetNear meal</h3>
+                <p>Enjoy a welcome discount when you order above ₹299.</p>
+              </div>
+              <Link
+                to={liveBusinesses[0] ? `/business/${liveBusinesses[0].id}` : '/'}
+                className="btn btn-primary"
+              >
+                Order now
+              </Link>
             </div>
-            <Link to={liveBusinesses[0] ? `/business/${liveBusinesses[0].id}` : '/'} className="btn btn-primary">
-              Order now
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
 
         <Footer />
       </main>

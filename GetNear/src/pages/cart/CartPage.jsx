@@ -125,15 +125,15 @@ export default function CartPage() {
           <p className="cart-panel-label">Items</p>
           <div className="cart-items">
             {items.map((item) => (
-              <div key={item.id} className="cart-item">
+              <div key={item.lineKey || item.id} className="cart-item">
                 <div className="cart-item-info">
-                  <h3>{item.name}</h3>
+                  <h3>{item.lineName || item.name}</h3>
                   <span className="cart-item-price">₹{item.price}</span>
                 </div>
                 <QuantityControl
                   quantity={item.quantity}
-                  onAdd={() => addItem(item.id)}
-                  onRemove={() => removeItem(item.id)}
+                  onAdd={() => addItem(item.id, item.option)}
+                  onRemove={() => removeItem(item.id, item.option)}
                 />
               </div>
             ))}

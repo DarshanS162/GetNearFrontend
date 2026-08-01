@@ -336,6 +336,10 @@
   line-height: 1.45;
 }
 
+.home-empty .btn {
+  margin-top: 12px;
+}
+
 .home-alert {
   margin-bottom: var(--space-5);
   border-color: rgba(239, 68, 68, 0.2);

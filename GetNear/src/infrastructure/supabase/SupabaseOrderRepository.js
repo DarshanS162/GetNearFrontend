@@ -41,6 +41,7 @@ export class SupabaseOrderRepository {
       quantity: item.quantity,
       unit_price: item.unitPrice,
       total_price: item.totalPrice,
+      pricing_option: item.pricingOption || 'piece',
     }));
 
     const { error: itemsError } = await this.client

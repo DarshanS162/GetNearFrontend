@@ -96,6 +96,9 @@ export class PlaceOrder {
           quantity,
           unitPrice,
           totalPrice: Number((unitPrice * quantity).toFixed(2)),
+          pricingOption: ['full', 'half', 'piece'].includes(item.pricingOption)
+            ? item.pricingOption
+            : 'piece',
         };
       });
 

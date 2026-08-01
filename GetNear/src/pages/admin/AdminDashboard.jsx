@@ -40,6 +40,9 @@ export default function AdminDashboard() {
           <Link to="/admin/restaurants" className="btn btn-primary">
             Add restaurant
           </Link>
+          <Link to="/admin/customers" className="btn btn-secondary">
+            Manage customers
+          </Link>
           <Link to="/admin/products" className="btn btn-secondary">
             Manage all menu items
           </Link>

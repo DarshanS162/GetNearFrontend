@@ -39,6 +39,13 @@
   gap: 8px;
 }
 
+.menu-pricing-type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .menu-category-chips .chip,
 .menu-category-suggestions .chip {
   cursor: pointer;

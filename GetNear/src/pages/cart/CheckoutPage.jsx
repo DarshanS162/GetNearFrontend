@@ -126,10 +126,11 @@ function CheckoutPageInner() {
         addressId: selectedAddress.id,
         items: items.map((item) => ({
           productId: item.id,
-          productName: item.name,
+          productName: item.lineName || item.name,
           foodType: item.foodType || 'veg',
           quantity: item.quantity,
           unitPrice: item.price,
+          pricingOption: item.option || 'piece',
         })),
         subtotal,
         discountAmount: discount,

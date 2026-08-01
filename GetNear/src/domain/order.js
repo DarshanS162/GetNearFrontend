@@ -12,6 +12,7 @@ export function mapOrderItem(row) {
     quantity: Number(row.quantity),
     unitPrice: Number(row.unit_price),
     totalPrice: Number(row.total_price),
+    pricingOption: row.pricing_option || 'piece',
   };
 }
 

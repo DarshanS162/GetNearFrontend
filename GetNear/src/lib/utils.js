@@ -82,14 +82,25 @@ export function mapCategory(row) {
 
 export function mapProduct(row) {
   if (!row) return null;
+  const pricingType =
+    row.pricing_type === 'full_half' ? 'full_half' : 'piece';
+  const fullPrice =
+    row.full_price != null ? Number(row.full_price) : Number(row.selling_price);
+  const halfPrice = row.half_price != null ? Number(row.half_price) : 0;
+  const price =
+    pricingType === 'full_half' ? fullPrice : Number(row.selling_price);
+
   return {
     id: row.id,
     businessId: row.restaurant_id,
     categoryId: row.category_id,
     name: row.name,
     description: row.description || '',
-    price: Number(row.selling_price),
+    price,
     mrp: Number(row.mrp),
+    pricingType,
+    fullPrice: pricingType === 'full_half' ? fullPrice : null,
+    halfPrice: pricingType === 'full_half' ? halfPrice : null,
     foodType: row.food_type || 'veg',
     prepTime: Number(row.preparation_time_minutes) || 15,
     ingredients: row.ingredients || '',
