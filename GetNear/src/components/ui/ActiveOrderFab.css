@@ -84,6 +84,11 @@ body.has-active-order-fab .floating-cart-fab {
   bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Room to scroll/tap content under the floating order card (e.g. Logout) */
+body.has-active-order-fab .app-shell {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
 @keyframes activeOrderIn {
   from {
     opacity: 0;
