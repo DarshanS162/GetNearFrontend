@@ -16,6 +16,10 @@ import {
   optionLabel,
   resolveUnitPrice,
 } from '../domain/productPricing';
+import ReplaceCartModal from '../components/ui/ReplaceCartModal';
+import ActiveOrderBlockModal from '../components/ui/ActiveOrderBlockModal';
+import { useAuth } from './AuthContext';
+import { useActiveOrder } from '../presentation/hooks/useActiveOrder';
 
 const CartContext = createContext(null);
 
@@ -27,6 +31,9 @@ function resolveStoredOption(getProduct, productId, option) {
 
 export function CartProvider({ children }) {
   const { getBusiness, getProduct, loading: catalogLoading } = useCatalog();
+  const { user } = useAuth();
+  const { activeOrder, hasActiveOrder, refresh: refreshActiveOrder } =
+    useActiveOrder({ enabled: Boolean(user?.id) });
   const [businessId, setBusinessId] = useState(() => readStoredCart().businessId);
   const [items, setItems] = useState(() => readStoredCart().items);
   const [coupon, setCoupon] = useState(null);
@@ -35,6 +42,8 @@ export function CartProvider({ children }) {
   const [baseDeliveryFee, setBaseDeliveryFee] = useState(fallbackDeliveryFee);
   const [taxRate, setTaxRate] = useState(fallbackTaxRate);
   const [hydrated, setHydrated] = useState(false);
+  const [replacePrompt, setReplacePrompt] = useState(null);
+  const [blockPrompt, setBlockPrompt] = useState(false);
 
   const business = getBusiness(businessId);
 
@@ -148,20 +157,19 @@ export function CartProvider({ children }) {
     setCouponError('');
   }
 
-  function addItem(productId, option) {
+  function commitAdd(productId, option, restaurantId) {
     resetCoupon();
-    const product = getProduct(productId);
-    if (!product) return;
     const id = String(productId);
-    const resolved = normalizeOption(product, option);
+    const product = getProduct(id);
+    const resolved = product ? normalizeOption(product, option) : option || 'piece';
 
+    setBusinessId(restaurantId);
     setItems((prev) => {
-      if (businessId && product.businessId !== businessId) {
-        setBusinessId(product.businessId);
+      const sameStore = !businessId || businessId === restaurantId;
+      if (!sameStore) {
         return [{ productId: id, quantity: 1, option: resolved }];
       }
 
-      setBusinessId(product.businessId);
       const base = mergeCartLines(prev, (pid, opt) =>
         resolveStoredOption(getProduct, pid, opt),
       );
@@ -177,6 +185,68 @@ export function CartProvider({ children }) {
       }
       return [...base, { productId: id, quantity: 1, option: resolved }];
     });
+  }
+
+  function addItem(productId, option) {
+    if (hasActiveOrder) {
+      setBlockPrompt(true);
+      return;
+    }
+
+    const product = getProduct(productId);
+    if (!product) return;
+    const id = String(productId);
+    const resolved = normalizeOption(product, option);
+    const hasOtherRestaurant =
+      Boolean(businessId) &&
+      items.length > 0 &&
+      product.businessId !== businessId;
+
+    if (hasOtherRestaurant) {
+      const nextBiz = getBusiness(product.businessId);
+      setReplacePrompt({
+        productId: id,
+        option: resolved,
+        restaurantId: product.businessId,
+        fromName: business?.name || 'another restaurant',
+        toName: nextBiz?.name || 'this restaurant',
+      });
+      return;
+    }
+
+    commitAdd(id, resolved, product.businessId);
+  }
+
+  function confirmReplaceCart() {
+    if (hasActiveOrder) {
+      setReplacePrompt(null);
+      setBlockPrompt(true);
+      return;
+    }
+    if (!replacePrompt) return;
+    const { productId, option, restaurantId } = replacePrompt;
+    setReplacePrompt(null);
+    resetCoupon();
+    setBusinessId(restaurantId);
+    setItems([{ productId, quantity: 1, option }]);
+  }
+
+  function cancelReplaceCart() {
+    setReplacePrompt(null);
+  }
+
+  function dismissBlockPrompt() {
+    setBlockPrompt(false);
+  }
+
+  /** Re-check server before checkout / place order. */
+  async function assertCanOrder() {
+    const active = await refreshActiveOrder();
+    if (active) {
+      setBlockPrompt(true);
+      return false;
+    }
+    return true;
   }
 
   function removeItem(productId, option) {
@@ -282,10 +352,27 @@ export function CartProvider({ children }) {
     getQuantity,
     setBusinessId,
     clearCart,
+    hasActiveOrder,
+    activeOrder,
+    assertCanOrder,
   };
 
   return (
-    <CartContext.Provider value={value}>{children}</CartContext.Provider>
+    <CartContext.Provider value={value}>
+      {children}
+      <ReplaceCartModal
+        open={Boolean(replacePrompt)}
+        fromName={replacePrompt?.fromName}
+        toName={replacePrompt?.toName}
+        onCancel={cancelReplaceCart}
+        onReplace={confirmReplaceCart}
+      />
+      <ActiveOrderBlockModal
+        open={blockPrompt}
+        order={activeOrder}
+        onClose={dismissBlockPrompt}
+      />
+    </CartContext.Provider>
   );
 }
 

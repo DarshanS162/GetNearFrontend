@@ -1,0 +1,128 @@
+.replace-cart-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  animation: replaceCartFade 0.2s ease both;
+}
+
+.replace-cart-modal {
+  width: min(100%, 340px);
+  padding: 20px 18px 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
+  animation: replaceCartPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.replace-cart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.replace-cart-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.replace-cart-close {
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px 0 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.replace-cart-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--color-text);
+}
+
+.replace-cart-body {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.replace-cart-body strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.replace-cart-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.replace-cart-no,
+.replace-cart-yes {
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.replace-cart-no {
+  background: rgba(255, 107, 53, 0.12);
+  color: var(--color-primary);
+}
+
+.replace-cart-no:hover {
+  background: rgba(255, 107, 53, 0.18);
+}
+
+.replace-cart-yes {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.replace-cart-yes:hover {
+  background: var(--color-primary-hover);
+}
+
+@keyframes replaceCartFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes replaceCartPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .replace-cart-backdrop,
+  .replace-cart-modal {
+    animation: none;
+  }
+}

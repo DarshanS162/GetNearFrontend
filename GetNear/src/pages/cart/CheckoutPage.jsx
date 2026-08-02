@@ -13,6 +13,7 @@ import {
   readSelectedAddressId,
   writeSelectedAddressId,
 } from '../../components/address';
+import { notifyOrdersChanged } from '../../presentation/hooks/useActiveOrder';
 import '../../components/address/address-components.css';
 import './CheckoutPage.css';
 
@@ -33,6 +34,7 @@ function CheckoutPageInner() {
     total,
     coupon,
     clearCart,
+    assertCanOrder,
   } = useCart();
   const { addresses, loading: addressesLoading, defaultAddress } = useAddresses();
   const restaurant = getBusiness(businessId);
@@ -100,6 +102,9 @@ function CheckoutPageInner() {
       showToast('Your cart is empty');
       return;
     }
+    if (!(await assertCanOrder())) {
+      return;
+    }
     if (!storeOpen) {
       showToast('This store is closed right now. Please try again when it opens.');
       return;
@@ -143,6 +148,7 @@ function CheckoutPageInner() {
       });
 
       clearCart();
+      notifyOrdersChanged();
       navigate(`/order/${order.id}`, { state: { justPlaced: true } });
     } catch (err) {
       showToast(err.message || 'Could not place order');

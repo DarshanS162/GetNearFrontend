@@ -1,0 +1,119 @@
+.active-order-block-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  animation: activeOrderBlockFade 0.2s ease both;
+}
+
+.active-order-block-modal {
+  width: min(100%, 340px);
+  padding: 20px 18px 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
+  animation: activeOrderBlockPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.active-order-block-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.active-order-block-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.active-order-block-close {
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px 0 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.active-order-block-body {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.active-order-block-body strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.active-order-block-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.active-order-block-secondary,
+.active-order-block-primary {
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.active-order-block-secondary {
+  background: rgba(255, 107, 53, 0.12);
+  color: var(--color-primary);
+}
+
+.active-order-block-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+@keyframes activeOrderBlockFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes activeOrderBlockPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-order-block-backdrop,
+  .active-order-block-modal {
+    animation: none;
+  }
+}

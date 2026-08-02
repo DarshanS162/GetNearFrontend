@@ -35,6 +35,7 @@ export default function CartPage() {
     removeCoupon,
     addItem,
     removeItem,
+    assertCanOrder,
   } = useCart();
 
   const storeOpen = isStoreOpen(business);
@@ -54,8 +55,9 @@ export default function CartPage() {
     }
   }
 
-  function handleCheckout() {
+  async function handleCheckout() {
     if (!storeOpen) return;
+    if (!(await assertCanOrder())) return;
     if (user && !selectedAddressId) {
       setAddOpen(true);
       return;
