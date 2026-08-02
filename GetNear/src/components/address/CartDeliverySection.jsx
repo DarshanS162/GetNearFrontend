@@ -76,6 +76,9 @@ export function CartDeliverySection({
   );
 
   async function handleSave(form) {
+    if (!user?.id) {
+      throw new Error('Please sign in to save an address.');
+    }
     setSaving(true);
     try {
       const created = await createAddress(form);

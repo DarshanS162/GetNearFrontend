@@ -111,7 +111,7 @@ export class PlaceOrder {
           : Number(subtotal);
 
       let serverDelivery = Number(deliveryCharge);
-      let serverTaxRate = 0.05;
+      let serverTaxRate = 0;
       try {
         const { data: quoted } = await this.supabaseClient.rpc(
           'quote_delivery_charge',

@@ -201,10 +201,12 @@ export default function CartPage() {
               <span>Delivery fee</span>
               <span>₹{deliveryFee}</span>
             </div>
-            <div className="price-row">
-              <span>Taxes</span>
-              <span>₹{taxes}</span>
-            </div>
+            {taxes > 0 && (
+              <div className="price-row">
+                <span>Taxes</span>
+                <span>₹{taxes}</span>
+              </div>
+            )}
             <div className="price-row price-row--total">
               <span>Total</span>
               <span className="amount">₹{total}</span>

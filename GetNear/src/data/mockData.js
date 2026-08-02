@@ -33,7 +33,8 @@ export const adminUsers = [
 ];
 
 export const deliveryFee = 22;
-export const taxRate = 0.05;
+/** Fallback when restaurant has no tax setting — owners opt in via Store settings. */
+export const taxRate = 0;
 
 export function getBusiness(id) {
   return businesses.find((b) => b.id === id);

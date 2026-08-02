@@ -58,6 +58,17 @@ export function getTimelineIndex(status) {
   return idx >= 0 ? idx : 0;
 }
 
+/** Order still in progress (not delivered / cancelled). */
+export function isActiveOrderStatus(status) {
+  return (
+    status === ORDER_STATUS.PLACED ||
+    status === ORDER_STATUS.CONFIRMED ||
+    status === ORDER_STATUS.PREPARING ||
+    status === ORDER_STATUS.READY ||
+    status === ORDER_STATUS.OUT_FOR_DELIVERY
+  );
+}
+
 export function generateOrderNumber(date = new Date()) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

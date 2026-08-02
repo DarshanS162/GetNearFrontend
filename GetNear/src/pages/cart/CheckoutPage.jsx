@@ -143,7 +143,7 @@ function CheckoutPageInner() {
       });
 
       clearCart();
-      navigate(`/order/${order.id}`);
+      navigate(`/order/${order.id}`, { state: { justPlaced: true } });
     } catch (err) {
       showToast(err.message || 'Could not place order');
     } finally {
@@ -313,10 +313,12 @@ function CheckoutPageInner() {
             <span>Delivery</span>
             <span>₹{deliveryFee}</span>
           </div>
-          <div className="price-row">
-            <span>Taxes</span>
-            <span>₹{taxes}</span>
-          </div>
+          {taxes > 0 && (
+            <div className="price-row">
+              <span>Taxes</span>
+              <span>₹{taxes}</span>
+            </div>
+          )}
           <div className="divider-dashed" />
           <div className="price-row price-row--total">
             <span>Pay on delivery</span>

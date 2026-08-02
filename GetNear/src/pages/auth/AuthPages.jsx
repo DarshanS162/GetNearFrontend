@@ -34,8 +34,13 @@ function stashPending({ phone, isSignup, name, referralCode }) {
 
 function clearPending() {
   sessionStorage.removeItem(PENDING_PHONE);
-  sessionStorage.removeItem(PENDING_NAME);
   sessionStorage.removeItem(PENDING_REFERRAL);
+  // Keep IS_SIGNUP + PENDING_NAME until set-password finishes (profile create may still need them)
+}
+
+function finishSignupFlags() {
+  sessionStorage.removeItem(IS_SIGNUP);
+  sessionStorage.removeItem(PENDING_NAME);
 }
 
 export default function LoginPage() {
@@ -183,7 +188,7 @@ export function SignupPage() {
       <main className="auth-container">
         <Logo />
         <h1>Create account</h1>
-        <p className="auth-subtitle">Verify with OTP, then set a password</p>
+        <p className="auth-subtitle">Verify with SMS OTP, then set a password</p>
 
         <label className="form-label" htmlFor="name">Full name</label>
         <input
@@ -193,6 +198,7 @@ export function SignupPage() {
           placeholder="Your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
         />
 
         <label className="form-label" htmlFor="signup-phone">Mobile number</label>
@@ -205,6 +211,7 @@ export function SignupPage() {
             placeholder="9876543210"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
           />
         </div>
 
@@ -223,7 +230,12 @@ export function SignupPage() {
 
         {authError && <p className="auth-error">{authError}</p>}
 
-        <button type="button" className="btn btn-primary btn-full" onClick={handleSendOtp} disabled={busy}>
+        <button
+          type="button"
+          className="btn btn-primary btn-full"
+          onClick={handleSendOtp}
+          disabled={busy}
+        >
           {busy ? 'Sending OTP…' : 'Send OTP'}
         </button>
 
@@ -305,7 +317,7 @@ export function OtpPage() {
       return;
     }
 
-    sessionStorage.removeItem(IS_SIGNUP);
+    finishSignupFlags();
     navigate(next);
   }
 
@@ -379,7 +391,7 @@ export function SetPasswordPage() {
   }, [loading, isAuthenticated, navigate]);
 
   function goNext() {
-    sessionStorage.removeItem(IS_SIGNUP);
+    finishSignupFlags();
     navigate(searchParams.get('next') || getPostLoginPath(user), { replace: true });
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { IconBack, IconCheck, IconLocation, IconBike } from '../../components/ui/Icons';
+import OrderPlacedOverlay from '../../components/ui/OrderPlacedOverlay';
 import { RequireAuth } from '../../components/auth/RequireAuth';
 import { orderUseCases } from '../../application/container';
 import { supabase } from '../../lib/supabase';
@@ -35,10 +36,22 @@ function statusMessage(order, { cancelled, delivered }) {
 
 function OrderTrackingInner() {
   const { id } = useParams();
+  const location = useLocation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
+  const [showPlaced, setShowPlaced] = useState(
+    () => Boolean(location.state?.justPlaced),
+  );
+
+  useEffect(() => {
+    if (!showPlaced) return undefined;
+    // Don't replay animation on refresh / back
+    window.history.replaceState({}, '');
+    const timer = setTimeout(() => setShowPlaced(false), 2200);
+    return () => clearTimeout(timer);
+  }, [showPlaced]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +146,7 @@ function OrderTrackingInner() {
   if (loading) {
     return (
       <div className="app-shell tracking-shell">
+        {showPlaced && <OrderPlacedOverlay />}
         <main className="page-container tracking-page">
           <div className="tracking-skel tracking-skel-banner" />
           <div className="tracking-skel tracking-skel-card" />
@@ -188,6 +202,7 @@ function OrderTrackingInner() {
 
   return (
     <div className="app-shell tracking-shell animate-in">
+      {showPlaced && <OrderPlacedOverlay orderNumber={order.orderNumber} />}
       <main
         className={`page-container tracking-page${delivered ? ' tracking-page--delivered' : ''}${cancelled ? ' tracking-page--cancelled' : ''}`}
       >

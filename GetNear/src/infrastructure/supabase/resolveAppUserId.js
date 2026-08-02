@@ -12,25 +12,32 @@ export async function resolveAppUserId(client, { fullName, phone } = {}) {
   if (existing) return existing;
 
   const {
-    data: { user },
-    error: authError,
-  } = await client.auth.getUser();
-
-  if (authError || !user) {
+    data: { session },
+  } = await client.auth.getSession();
+  const authUser = session?.user;
+  if (!authUser) {
     throw new Error('Login required. Please sign in again.');
   }
 
-  const phoneHint = phone || user.phone || '';
+  const phoneHint = phone || authUser.phone || '';
   const nameHint =
-    fullName || user.user_metadata?.full_name || 'Customer';
+    fullName || authUser.user_metadata?.full_name || 'Customer';
 
-  // Claim pre-seeded owner/admin rows, or create a customer profile.
-  await client.rpc('claim_user_by_phone', { p_phone: phoneHint });
+  const { error: claimError } = await client.rpc('claim_user_by_phone', {
+    p_phone: phoneHint,
+  });
+  if (claimError) {
+    throw new Error(claimError.message || 'Could not link your profile');
+  }
+
+  const { data: afterClaim } = await client.rpc('current_app_user_id');
+  if (afterClaim) return afterClaim;
+
+  // Last resort: create customer row (orphaned auth session after partial signup)
   const { error: ensureError } = await client.rpc('ensure_customer_profile', {
     p_full_name: nameHint,
     p_phone: phoneHint,
   });
-
   if (ensureError) {
     throw new Error(
       ensureError.message ||

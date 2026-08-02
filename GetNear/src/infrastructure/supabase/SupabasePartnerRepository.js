@@ -109,4 +109,22 @@ export class SupabasePartnerRepository {
     if (error) throw error;
     return mapRestaurant(data);
   }
+
+  /** Tax percent (0–100). Missing settings ⇒ 0. */
+  async getTaxRatePercent(restaurantId) {
+    const { data, error } = await this.client.rpc('get_restaurant_tax_rate', {
+      p_restaurant_id: restaurantId,
+    });
+    if (error) throw error;
+    return Math.round((Number(data) || 0) * 10000) / 100;
+  }
+
+  async setTaxRatePercent(restaurantId, percent) {
+    const { data, error } = await this.client.rpc('set_restaurant_tax_rate', {
+      p_restaurant_id: restaurantId,
+      p_tax_percent: Number(percent) || 0,
+    });
+    if (error) throw error;
+    return Number(data) || 0;
+  }
 }

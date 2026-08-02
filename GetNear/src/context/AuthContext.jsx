@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { IS_SIGNUP, PENDING_NAME } from '../lib/authKeys';
 import {
@@ -9,7 +9,15 @@ import {
 
 const AuthContext = createContext(null);
 
-async function fetchProfileByAuthId(authUserId) {
+function customerEmail(digits) {
+  return `${digits}@customer.getnear.app`;
+}
+
+function adminEmail(digits) {
+  return `${digits}@admin.getnear.app`;
+}
+
+async function fetchProfile(authUserId) {
   const { data, error } = await supabase
     .from('users')
     .select('id, full_name, phone, role_id, auth_user_uuid, roles(slug, name)')
@@ -28,52 +36,10 @@ async function isPhoneRegistered(phone) {
   return Boolean(data);
 }
 
-/** login → must exist; signup → must be new. Returns error message or null. */
-async function phoneGate(phone, mode) {
-  const registered = await isPhoneRegistered(phone);
-  if (mode === 'login' && !registered) {
-    return 'No account found for this number. Please create an account first.';
-  }
-  if (mode === 'signup' && registered) {
-    return 'This number is already registered. Please log in.';
-  }
-  return null;
-}
-
-async function loadAppUser(authUser, phoneHint, { createIfMissing = false } = {}) {
-  const phone =
-    toE164India(phoneHint || authUser.phone) || phoneHint || authUser.phone || '';
-
-  const { data: claimed, error: claimError } = await supabase.rpc(
-    'claim_user_by_phone',
-    { p_phone: phone || authUser.phone || '' },
-  );
-  if (claimError) console.warn('claim_user_by_phone:', claimError.message);
-
-  let row = claimed || (await fetchProfileByAuthId(authUser.id));
-
-  if (!row && createIfMissing) {
-    const pendingName = sessionStorage.getItem(PENDING_NAME);
-    const { data: created, error: createError } = await supabase.rpc(
-      'ensure_customer_profile',
-      {
-        p_full_name:
-          pendingName || authUser.user_metadata?.full_name || 'Customer',
-        p_phone: phone || authUser.phone || '',
-      },
-    );
-    if (createError) console.warn('ensure_customer_profile:', createError.message);
-    else row = created;
-  }
-
-  // Reload with roles join (RPC rows often omit nested roles)
-  row = (await fetchProfileByAuthId(authUser.id)) || row;
-  if (!row) return null;
-
+async function toAppUser(authUser, row) {
   const roleRelation = row.roles;
   let role =
     (Array.isArray(roleRelation) ? roleRelation[0]?.slug : roleRelation?.slug) ||
-    row.role_slug ||
     'customer';
 
   let restaurantId = null;
@@ -101,47 +67,111 @@ async function loadAppUser(authUser, phoneHint, { createIfMissing = false } = {}
   };
 }
 
+/**
+ * After SMS verify on signup: claim-or-create public.users row.
+ * Throws on failure so the UI can show the real error.
+ */
+async function ensureSignupProfile(authUser, phoneHint) {
+  const phone =
+    toE164India(phoneHint || authUser.phone) ||
+    phoneHint ||
+    authUser.phone ||
+    '';
+  const fullName =
+    sessionStorage.getItem(PENDING_NAME) ||
+    authUser.user_metadata?.full_name ||
+    'Customer';
+
+  await supabase.rpc('claim_user_by_phone', { p_phone: String(phone) });
+
+  let row = await fetchProfile(authUser.id);
+  if (row) return row;
+
+  const { data: created, error } = await supabase.rpc('ensure_customer_profile', {
+    p_full_name: fullName,
+    p_phone: String(phone),
+  });
+  if (error) throw new Error(error.message);
+
+  row = (await fetchProfile(authUser.id)) || created;
+  if (!row) throw new Error('Could not create your account. Please try again.');
+  return row;
+}
+
+async function loadAppUser(authUser, phoneHint, { createIfMissing = false } = {}) {
+  const phone =
+    toE164India(phoneHint || authUser.phone) ||
+    phoneHint ||
+    authUser.phone ||
+    authUser.user_metadata?.phone ||
+    '';
+
+  if (createIfMissing) {
+    const row = await ensureSignupProfile(authUser, phone);
+    return toAppUser(authUser, row);
+  }
+
+  const { data: claimed, error: claimError } = await supabase.rpc(
+    'claim_user_by_phone',
+    { p_phone: String(phone || '') },
+  );
+  if (claimError) throw new Error(claimError.message);
+
+  const row = claimed || (await fetchProfile(authUser.id));
+  if (!row) return null;
+  return toAppUser(authUser, row);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
+  const syncLock = useRef(Promise.resolve());
+  const authBusy = useRef(false);
 
   const fail = (msg) => {
     setAuthError(msg);
     return { error: msg };
   };
 
-  const syncSession = useCallback(async (session) => {
-    if (!session?.user) {
-      setUser(null);
-      return null;
-    }
-
-    const isSignup = sessionStorage.getItem(IS_SIGNUP) === '1';
-    try {
-      const profile = await loadAppUser(session.user, session.user.phone, {
-        createIfMissing: isSignup,
-      });
-
-      if (!profile) {
-        await supabase.auth.signOut();
+  const syncSession = useCallback(async (session, opts = {}) => {
+    const run = async () => {
+      if (!session?.user) {
         setUser(null);
-        setAuthError(
-          isSignup
-            ? 'Could not create your account. Please try again.'
-            : 'No account found for this number. Please sign up first.',
-        );
         return null;
       }
 
-      setUser(profile);
-      return profile;
-    } catch (err) {
-      console.error(err);
-      setAuthError(err.message || 'Failed to load profile');
-      setUser(null);
-      return null;
-    }
+      const createIfMissing =
+        opts.createIfMissing ?? sessionStorage.getItem(IS_SIGNUP) === '1';
+      const phoneHint =
+        opts.phoneHint ||
+        session.user.phone ||
+        session.user.user_metadata?.phone;
+
+      try {
+        const profile = await loadAppUser(session.user, phoneHint, {
+          createIfMissing,
+        });
+        if (!profile) {
+          setUser(null);
+          return null;
+        }
+        setUser(profile);
+        return profile;
+      } catch (err) {
+        console.error(err);
+        setAuthError(err.message || 'Failed to load profile');
+        setUser(null);
+        return null;
+      }
+    };
+
+    const next = syncLock.current.then(run, run);
+    syncLock.current = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
   }, []);
 
   useEffect(() => {
@@ -155,7 +185,10 @@ export function AuthProvider({ children }) {
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      syncSession(session);
+      if (authBusy.current) return;
+      setTimeout(() => {
+        if (mounted && !authBusy.current) syncSession(session);
+      }, 0);
     });
 
     return () => {
@@ -171,8 +204,15 @@ export function AuthProvider({ children }) {
     if (!e164) return fail('Enter a valid 10-digit mobile number');
 
     try {
-      const gateError = await phoneGate(e164, mode);
-      if (gateError) return fail(gateError);
+      const registered = await isPhoneRegistered(e164);
+      if (mode === 'login' && !registered) {
+        return fail(
+          'No account found for this number. Please create an account first.',
+        );
+      }
+      if (mode === 'signup' && registered) {
+        return fail('This number is already registered. Please log in.');
+      }
     } catch (err) {
       return fail(err.message || 'Could not verify this number');
     }
@@ -185,22 +225,40 @@ export function AuthProvider({ children }) {
   async function verifyOtp(phone, token) {
     setAuthError('');
     const e164 = toE164India(phone) || phone;
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: e164,
-      token: String(token).trim(),
-      type: 'sms',
-    });
-    if (error) return fail(error.message);
+    const isSignup = sessionStorage.getItem(IS_SIGNUP) === '1';
 
-    const profile = await syncSession(data.session);
-    if (!profile) {
-      return fail(
-        sessionStorage.getItem(IS_SIGNUP) === '1'
-          ? 'Could not create your account. Please try again.'
-          : 'No account found for this number. Please sign up first.',
-      );
+    authBusy.current = true;
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: e164,
+        token: String(token).trim(),
+        type: 'sms',
+      });
+      if (error) return fail(error.message);
+      if (!data.session?.user) {
+        return fail('Could not verify OTP. Please try again.');
+      }
+
+      // Signup: create public.users as soon as SMS is verified
+      const profile = await syncSession(data.session, {
+        createIfMissing: isSignup,
+        phoneHint: e164,
+      });
+
+      if (!profile) {
+        return fail(
+          isSignup
+            ? authError || 'Could not create your account. Please try again.'
+            : 'No account found for this number. Please sign up first.',
+        );
+      }
+
+      return { user: profile, session: data.session };
+    } catch (err) {
+      return fail(err.message || 'Could not verify OTP');
+    } finally {
+      authBusy.current = false;
     }
-    return { user: profile, session: data.session };
   }
 
   async function loginWithPassword(phone, password) {
@@ -210,36 +268,53 @@ export function AuthProvider({ children }) {
     if (!password) return fail('Enter your password');
 
     try {
-      const gateError = await phoneGate(digits, 'login');
-      if (gateError) return fail(gateError);
+      if (!(await isPhoneRegistered(digits))) {
+        return fail(
+          'No account found for this number. Please create an account first.',
+        );
+      }
     } catch (err) {
       return fail(err.message || 'Could not verify this number');
     }
 
-    // Admins: {phone}@admin.getnear.app · Customers: phone + password
-    let { data, error } = await supabase.auth.signInWithPassword({
-      email: `${digits}@admin.getnear.app`,
-      password,
-    });
-    if (error) {
-      ({ data, error } = await supabase.auth.signInWithPassword({
-        phone: toE164India(phone),
-        password,
-      }));
-    }
-    if (error) {
-      return fail(
-        /invalid login credentials/i.test(error.message)
-          ? 'Wrong password, or set a password via Sign up / OTP first.'
-          : error.message,
-      );
-    }
+    authBusy.current = true;
+    try {
+      const attempts = [
+        { email: adminEmail(digits), password },
+        { email: customerEmail(digits), password },
+        { phone: toE164India(phone), password },
+      ];
 
-    const profile = await syncSession(data.session);
-    if (!profile) {
-      return fail('No account found for this number. Please sign up first.');
+      let session = null;
+      let lastError = null;
+      for (const creds of attempts) {
+        const { data, error } = await supabase.auth.signInWithPassword(creds);
+        if (!error && data.session) {
+          session = data.session;
+          break;
+        }
+        lastError = error;
+      }
+
+      if (!session) {
+        return fail(
+          /invalid login credentials/i.test(lastError?.message || '')
+            ? 'Wrong password. Try again, or use Login with OTP.'
+            : lastError?.message || 'Could not sign in',
+        );
+      }
+
+      const profile = await syncSession(session, {
+        createIfMissing: false,
+        phoneHint: digits,
+      });
+      if (!profile) {
+        return fail('No account found for this number. Please sign up first.');
+      }
+      return { user: profile, session };
+    } finally {
+      authBusy.current = false;
     }
-    return { user: profile, session: data.session };
   }
 
   async function savePassword(password) {
@@ -309,7 +384,7 @@ export function AuthProvider({ children }) {
       setAuthError,
       isAdmin,
       isRestaurantOwner,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user?.id),
       sendOtp,
       verifyOtp,
       loginWithPassword,
@@ -321,7 +396,7 @@ export function AuthProvider({ children }) {
       toE164India,
       getPostLoginPath,
     }),
-    [user, loading, authError, isAdmin, isRestaurantOwner],
+    [user, loading, authError, isAdmin, isRestaurantOwner, syncSession],
   );
 
   return (

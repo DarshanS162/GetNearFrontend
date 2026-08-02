@@ -38,6 +38,7 @@ import OwnerProfilePage from './pages/owner/OwnerProfilePage';
 
 import PartnerApplyPage from './pages/partner/PartnerApplyPage';
 import OfflineBanner from './components/ui/OfflineBanner';
+import ActiveOrderFab from './components/ui/ActiveOrderFab';
 
 import './pages/admin/AdminLayout.css';
 
@@ -48,6 +49,7 @@ export default function App() {
         <CartProvider>
           <BrowserRouter>
             <OfflineBanner />
+            <ActiveOrderFab />
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/business/:id" element={<BusinessPage />} />

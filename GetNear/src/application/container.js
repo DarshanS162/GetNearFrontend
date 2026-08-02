@@ -79,4 +79,4 @@ export const referralUseCases = {
   manage: new ManageReferrals(deps),
 };
 
-export { branchRepository, addressRepository };
+export { branchRepository, addressRepository, partnerRepository };

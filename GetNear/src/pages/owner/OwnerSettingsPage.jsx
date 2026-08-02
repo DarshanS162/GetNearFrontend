@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCatalog } from '../../context/CatalogContext';
-import { partnerUseCases, branchRepository } from '../../application/container';
+import { partnerUseCases, branchRepository, partnerRepository } from '../../application/container';
 import { BUSINESS_STATUS, BUSINESS_STATUS_LABELS } from '../../domain/restaurant';
 import ImageField from '../../components/ui/ImageField';
 import { uploadImage } from '../../lib/storage';
@@ -27,12 +27,15 @@ export default function OwnerSettingsPage() {
   const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savingRadius, setSavingRadius] = useState(false);
+  const [savingTax, setSavingTax] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [toast, setToast] = useState('');
 
   const [deliveryRadiusKm, setDeliveryRadiusKm] = useState('5');
   const [customRadius, setCustomRadius] = useState('');
   const [radiusLoaded, setRadiusLoaded] = useState(false);
+  const [taxPercent, setTaxPercent] = useState('0');
+  const [taxLoaded, setTaxLoaded] = useState(false);
 
   useEffect(() => {
     if (!restaurant) {
@@ -72,6 +75,17 @@ export default function OwnerSettingsPage() {
       })
       .catch(() => {
         setRadiusLoaded(true);
+      });
+
+    partnerRepository
+      .getTaxRatePercent(restaurant.id)
+      .then((pct) => {
+        setTaxPercent(String(pct ?? 0));
+        setTaxLoaded(true);
+      })
+      .catch(() => {
+        setTaxPercent('0');
+        setTaxLoaded(true);
       });
   }, [restaurant]);
 
@@ -134,6 +148,28 @@ export default function OwnerSettingsPage() {
       showToast(err.message || 'Could not save delivery radius');
     } finally {
       setSavingRadius(false);
+    }
+  }
+
+  async function handleSaveTax() {
+    const pct = Number(taxPercent);
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      showToast('Tax must be between 0 and 100');
+      return;
+    }
+    setSavingTax(true);
+    try {
+      const saved = await partnerRepository.setTaxRatePercent(restaurant.id, pct);
+      setTaxPercent(String(saved));
+      showToast(
+        saved > 0
+          ? `Tax set to ${saved}% on orders`
+          : 'Tax turned off (no tax on orders)',
+      );
+    } catch (err) {
+      showToast(err.message || 'Could not save tax');
+    } finally {
+      setSavingTax(false);
     }
   }
 
@@ -261,6 +297,49 @@ export default function OwnerSettingsPage() {
               disabled={savingRadius}
             >
               {savingRadius ? 'Saving…' : 'Save delivery radius'}
+            </button>
+          </>
+        ) : (
+          <p className="form-hint" style={{ margin: 0 }}>Loading…</p>
+        )}
+      </section>
+
+      {/* —— Tax —— */}
+      <section className="card owner-settings-section">
+        <div className="owner-settings-section-head">
+          <div>
+            <h2>Tax on orders</h2>
+            <p>Leave at 0 for no tax. Set a percent only if you charge GST/VAT on the bill.</p>
+          </div>
+        </div>
+
+        {taxLoaded ? (
+          <>
+            <label className="form-label owner-settings-field">
+              Tax rate (%)
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                className="form-input"
+                value={taxPercent}
+                onChange={(e) => setTaxPercent(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <p className="form-hint">
+              {Number(taxPercent) > 0
+                ? `${taxPercent}% will be added on the item total (after discount) at checkout.`
+                : 'No tax — customers only pay item total + delivery.'}
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary owner-settings-section-btn"
+              onClick={handleSaveTax}
+              disabled={savingTax}
+            >
+              {savingTax ? 'Saving…' : 'Save tax'}
             </button>
           </>
         ) : (

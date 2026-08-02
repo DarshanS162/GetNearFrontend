@@ -32,7 +32,7 @@ export function useAddresses() {
 
   async function createAddress(input) {
     if (!user?.id) {
-      throw new Error('Login required. Please sign in again.');
+      throw new Error('Please sign in to save an address.');
     }
     const created = await addressUseCases.create.execute(user.id, input);
     await refresh();
