@@ -46,8 +46,8 @@ export default function App() {
   return (
     <AuthProvider>
       <CatalogProvider>
-        <CartProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <CartProvider>
             <OfflineBanner />
             <ActiveOrderFab />
             <Routes>
@@ -88,8 +88,8 @@ export default function App() {
                 <Route path="profile" element={<OwnerProfilePage />} />
               </Route>
             </Routes>
-          </BrowserRouter>
-        </CartProvider>
+          </CartProvider>
+        </BrowserRouter>
       </CatalogProvider>
     </AuthProvider>
   );
