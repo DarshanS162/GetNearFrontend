@@ -5,6 +5,7 @@ import { couponUseCases } from '../application/container';
 import { supabase } from '../lib/supabase';
 import {
   clearStoredCart,
+  mergeCartLines,
   readStoredCart,
   writeStoredCart,
 } from '../lib/cartStorage';
@@ -17,6 +18,12 @@ import {
 } from '../domain/productPricing';
 
 const CartContext = createContext(null);
+
+function resolveStoredOption(getProduct, productId, option) {
+  const product = getProduct(productId);
+  if (!product) return null;
+  return normalizeOption(product, option);
+}
 
 export function CartProvider({ children }) {
   const { getBusiness, getProduct, loading: catalogLoading } = useCatalog();
@@ -34,8 +41,18 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (catalogLoading) return;
     setItems((prev) => {
-      const next = prev.filter((row) => Boolean(getProduct(row.productId)));
-      if (next.length === prev.length) return prev;
+      const next = mergeCartLines(prev, (productId, option) =>
+        resolveStoredOption(getProduct, productId, option),
+      );
+      const same =
+        next.length === prev.length &&
+        next.every(
+          (row, i) =>
+            row.productId === String(prev[i].productId) &&
+            row.quantity === prev[i].quantity &&
+            row.option === prev[i].option,
+        );
+      if (same) return prev;
       if (next.length === 0) setBusinessId('');
       return next;
     });
@@ -47,29 +64,30 @@ export function CartProvider({ children }) {
     writeStoredCart({ businessId, items });
   }, [businessId, items, hydrated, catalogLoading]);
 
-  const cartItems = useMemo(
-    () =>
-      items
-        .map((row) => {
-          const product = getProduct(row.productId);
-          if (!product) return null;
-          const option = normalizeOption(product, row.option);
-          const unitPrice = resolveUnitPrice(product, option);
-          return {
-            ...product,
-            option,
-            optionLabel: optionLabel(option),
-            lineName: formatLineName(product.name, option),
-            price: unitPrice,
-            quantity: row.quantity,
-            lineKey: cartLineKey(product.id, option),
-          };
-        })
-        .filter(Boolean),
-    [items, getProduct],
-  );
+  const cartItems = useMemo(() => {
+    const merged = mergeCartLines(items, (productId, option) =>
+      resolveStoredOption(getProduct, productId, option),
+    );
+    return merged
+      .map((row) => {
+        const product = getProduct(row.productId);
+        if (!product) return null;
+        const option = row.option;
+        const unitPrice = resolveUnitPrice(product, option);
+        return {
+          ...product,
+          option,
+          optionLabel: optionLabel(option),
+          lineName: formatLineName(product.name, option),
+          price: unitPrice,
+          quantity: row.quantity,
+          lineKey: cartLineKey(product.id, option),
+        };
+      })
+      .filter(Boolean);
+  }, [items, getProduct]);
 
-  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const itemCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -134,50 +152,58 @@ export function CartProvider({ children }) {
     resetCoupon();
     const product = getProduct(productId);
     if (!product) return;
+    const id = String(productId);
     const resolved = normalizeOption(product, option);
 
     setItems((prev) => {
       if (businessId && product.businessId !== businessId) {
         setBusinessId(product.businessId);
-        return [{ productId, quantity: 1, option: resolved }];
+        return [{ productId: id, quantity: 1, option: resolved }];
       }
 
       setBusinessId(product.businessId);
-      const existing = prev.find(
-        (i) => i.productId === productId && i.option === resolved,
+      const base = mergeCartLines(prev, (pid, opt) =>
+        resolveStoredOption(getProduct, pid, opt),
+      );
+      const existing = base.find(
+        (i) => i.productId === id && i.option === resolved,
       );
       if (existing) {
-        return prev.map((i) =>
-          i.productId === productId && i.option === resolved
+        return base.map((i) =>
+          i.productId === id && i.option === resolved
             ? { ...i, quantity: i.quantity + 1 }
             : i,
         );
       }
-      return [...prev, { productId, quantity: 1, option: resolved }];
+      return [...base, { productId: id, quantity: 1, option: resolved }];
     });
   }
 
   function removeItem(productId, option) {
     resetCoupon();
     const product = getProduct(productId);
+    const id = String(productId);
     const resolved = product
       ? normalizeOption(product, option)
       : option || 'piece';
 
     setItems((prev) => {
-      const existing = prev.find(
-        (i) => i.productId === productId && i.option === resolved,
+      const base = mergeCartLines(prev, (pid, opt) =>
+        resolveStoredOption(getProduct, pid, opt),
+      );
+      const existing = base.find(
+        (i) => i.productId === id && i.option === resolved,
       );
       if (!existing) return prev;
       if (existing.quantity <= 1) {
-        const next = prev.filter(
-          (i) => !(i.productId === productId && i.option === resolved),
+        const next = base.filter(
+          (i) => !(i.productId === id && i.option === resolved),
         );
         if (next.length === 0) setBusinessId('');
         return next;
       }
-      return prev.map((i) =>
-        i.productId === productId && i.option === resolved
+      return base.map((i) =>
+        i.productId === id && i.option === resolved
           ? { ...i, quantity: i.quantity - 1 }
           : i,
       );
@@ -186,13 +212,18 @@ export function CartProvider({ children }) {
 
   function getQuantity(productId, option) {
     const product = getProduct(productId);
+    const id = String(productId);
     const resolved = product
       ? normalizeOption(product, option)
       : option || 'piece';
-    return (
-      items.find((i) => i.productId === productId && i.option === resolved)
-        ?.quantity ?? 0
-    );
+    return items.reduce((sum, row) => {
+      if (String(row.productId) !== id) return sum;
+      const rowProduct = getProduct(row.productId);
+      const rowOption = rowProduct
+        ? normalizeOption(rowProduct, row.option)
+        : row.option;
+      return rowOption === resolved ? sum + row.quantity : sum;
+    }, 0);
   }
 
   function clearCart() {

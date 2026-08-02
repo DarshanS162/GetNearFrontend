@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { IconSearch, IconCart, IconChevron } from './Icons';
+import { IconSearch, IconCart, IconChevron, IconTrash } from './Icons';
 
 export function SearchBar({ placeholder = 'Search...', value, onChange }) {
   return (
@@ -27,8 +27,13 @@ export function QuantityControl({ quantity, onAdd, onRemove }) {
 
   return (
     <div className="qty-control">
-      <button type="button" className="qty-btn" onClick={onRemove} aria-label="Decrease">
-        −
+      <button
+        type="button"
+        className="qty-btn"
+        onClick={onRemove}
+        aria-label={quantity === 1 ? 'Remove item' : 'Decrease'}
+      >
+        {quantity === 1 ? <IconTrash size={15} /> : '−'}
       </button>
       <span className="qty-value">{quantity}</span>
       <button type="button" className="qty-btn" onClick={onAdd} aria-label="Increase">

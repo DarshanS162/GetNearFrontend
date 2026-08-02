@@ -216,9 +216,11 @@ export default function BusinessPage() {
                           <h3>{item.name}</h3>
                         </Link>
                       </div>
-                      <div className="menu-item-price-row">
-                        <span className="menu-price">{formatPriceSummary(item)}</span>
-                      </div>
+                      {!storeOpen && (
+                        <div className="menu-item-price-row">
+                          <span className="menu-price">{formatPriceSummary(item)}</span>
+                        </div>
+                      )}
                       {item.description && <p>{item.description}</p>}
                       {storeOpen ? (
                         <div className="menu-portion-actions">

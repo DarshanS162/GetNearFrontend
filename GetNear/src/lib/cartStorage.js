@@ -67,3 +67,26 @@ export function clearStoredCart() {
     // ignore
   }
 }
+
+/**
+ * Merge duplicate lines after normalizing option (e.g. piece → full).
+ * resolveOption(productId, option) → normalized option string, or null to drop.
+ */
+export function mergeCartLines(items, resolveOption) {
+  const map = new Map();
+  for (const row of items || []) {
+    const productId = String(row?.productId || '');
+    if (!productId) continue;
+    const option = resolveOption(productId, row?.option);
+    if (!option) continue;
+    const quantity = Math.max(1, Math.floor(Number(row?.quantity) || 0));
+    const key = `${productId}::${option}`;
+    const prev = map.get(key);
+    if (prev) {
+      prev.quantity += quantity;
+    } else {
+      map.set(key, { productId, quantity, option });
+    }
+  }
+  return Array.from(map.values());
+}

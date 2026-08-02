@@ -12,6 +12,32 @@ import {
 } from '../../lib/authKeys';
 import './AuthPages.css';
 
+function otpPath(redirect) {
+  return redirect ? `/otp?redirect=${encodeURIComponent(redirect)}` : '/otp';
+}
+
+function stashPending({ phone, isSignup, name, referralCode }) {
+  sessionStorage.setItem(PENDING_PHONE, phone.trim());
+  if (isSignup) {
+    sessionStorage.setItem(IS_SIGNUP, '1');
+    sessionStorage.setItem(PENDING_NAME, name.trim());
+  } else {
+    sessionStorage.removeItem(IS_SIGNUP);
+    sessionStorage.removeItem(PENDING_NAME);
+  }
+  if (referralCode?.trim()) {
+    sessionStorage.setItem(PENDING_REFERRAL, referralCode.trim().toUpperCase());
+  } else {
+    sessionStorage.removeItem(PENDING_REFERRAL);
+  }
+}
+
+function clearPending() {
+  sessionStorage.removeItem(PENDING_PHONE);
+  sessionStorage.removeItem(PENDING_NAME);
+  sessionStorage.removeItem(PENDING_REFERRAL);
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,22 +57,18 @@ export default function LoginPage() {
 
     const redirect = searchParams.get('redirect');
     const dest = getPostLoginPath(result.user);
-    // Keep intentional redirects (e.g. /partner), but don't stick owners on "/"
     navigate(redirect && redirect !== '/' ? redirect : dest);
   }
 
   async function handleSendOtp() {
     setBusy(true);
     setAuthError('');
-    const result = await sendOtp(phone);
+    const result = await sendOtp(phone, { mode: 'login' });
     setBusy(false);
     if (result.error) return;
 
-    sessionStorage.setItem(PENDING_PHONE, phone.trim());
-    sessionStorage.removeItem(IS_SIGNUP);
-
-    const redirect = searchParams.get('redirect');
-    navigate(redirect ? `/otp?redirect=${encodeURIComponent(redirect)}` : '/otp');
+    stashPending({ phone, isSignup: false });
+    navigate(otpPath(searchParams.get('redirect')));
   }
 
   return (
@@ -142,22 +164,18 @@ export function SignupPage() {
   const [busy, setBusy] = useState(false);
 
   async function handleSendOtp() {
+    if (!name.trim()) {
+      setAuthError('Enter your full name');
+      return;
+    }
     setBusy(true);
     setAuthError('');
-    const result = await sendOtp(phone);
+    const result = await sendOtp(phone, { mode: 'signup' });
     setBusy(false);
     if (result.error) return;
 
-    sessionStorage.setItem(PENDING_PHONE, phone.trim());
-    sessionStorage.setItem(IS_SIGNUP, '1');
-    if (name.trim()) sessionStorage.setItem(PENDING_NAME, name.trim());
-    if (referralCode.trim()) {
-      sessionStorage.setItem(PENDING_REFERRAL, referralCode.trim().toUpperCase());
-    } else {
-      sessionStorage.removeItem(PENDING_REFERRAL);
-    }
-    const redirect = searchParams.get('redirect');
-    navigate(redirect ? `/otp?redirect=${encodeURIComponent(redirect)}` : '/otp');
+    stashPending({ phone, isSignup: true, name, referralCode });
+    navigate(otpPath(searchParams.get('redirect')));
   }
 
   return (
@@ -270,22 +288,19 @@ export function OtpPage() {
         console.warn('Referral code was not applied:', err.message);
       }
     }
-    sessionStorage.removeItem(PENDING_PHONE);
-    sessionStorage.removeItem(PENDING_NAME);
-    sessionStorage.removeItem(PENDING_REFERRAL);
+    clearPending();
 
     const redirect = searchParams.get('redirect');
-    const dest = getPostLoginPath(user);
-    const next = redirect && redirect !== '/' ? redirect : dest;
+    const next =
+      redirect && redirect !== '/' ? redirect : getPostLoginPath(user);
 
-    // Signup + restaurant owners get a chance to set password after OTP
-    const offerPassword =
+    const needsPassword =
       isSignup ||
       user?.role === 'restaurant_owner' ||
       user?.role === 'admin' ||
       user?.role === 'super_admin';
 
-    if (offerPassword) {
+    if (needsPassword) {
       navigate(`/set-password?next=${encodeURIComponent(next)}`);
       return;
     }
@@ -336,7 +351,7 @@ export function OtpPage() {
             onClick={() => {
               setLocalError('');
               setAuthError('');
-              sendOtp(phone);
+              sendOtp(phone, { mode: isSignup ? 'signup' : 'login' });
             }}
           >
             Resend OTP
